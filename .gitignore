@@ -1,0 +1,11 @@
+.*
+!.gitignore
+!.gitkeep
+!.mvn
+!.github
+target
+*.log
+*.iml
+
+# Python bytecode from the CI provisioning scripts
+__pycache__/

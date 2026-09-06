@@ -1,0 +1,170 @@
+# Builds against the PUBLISHED agent contract. Nothing here checks out the sokar repository,
+# and that is the property worth protecting: if this build ever needs one, the split has been
+# undone without anyone deciding to undo it.
+#
+# The acceptance suite is not here. It needs podman, nftables and a sokar binary, so it belongs
+# to the sokar repository; what this repository can prove on its own is that the adapter
+# compiles against the contract, that its unit tests pass, and that it packages.
+name: Build
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  build:
+    name: Build and unit tests
+    # Pinned, not 'ubuntu-latest'. The binary is a native image and links glibc dynamically, so
+    # it runs only on that release or newer - and 'ubuntu-latest' moves. The day it becomes
+    # 26.04 the package would stop launching on the current LTS, at the user's machine, with
+    # nothing here going red. 24.04 is the floor Sokar supports.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '25'
+          distribution: 'graalvm-community'
+          cache: 'maven'
+
+      # -s settings.xml declares the snapshot repository the agent contract is resolved from,
+      # and keeps a developer's own ~/.m2/settings.xml out of what makes a build work.
+      - name: Build and unit tests
+        run: ./mvnw -B -s settings.xml verify
+
+      # The packages are what an operator installs, so a build that has not produced them has
+      # not proved much. Native-image needs the GraalVM set up above.
+      # -Pdist also builds the Pi tree - npm ci and a Node runtime, inside a pinned container.
+      # That is why this build is minutes rather than seconds, and why podman is needed here.
+      - name: Native binary and packages
+        run: ./mvnw -B -s settings.xml -Pnative,dist verify -DskipTests
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: packages
+          path: |
+            target/*.deb
+            target/*.rpm
+          if-no-files-found: error
+
+      # Publishing only from main. A pull request builds and packages, which is what says the
+      # change is sound; it must not put an artifact where an operator could install it.
+      #
+      # In this job rather than a separate one: the native build here takes about twenty
+      # seconds, so a second job would cost more in setup than it saves.
+      # The action publishes build-info by itself at the end of the workflow. That goes into
+      # 'artifactory-build-info', which this token cannot write, so it warns on every run about
+      # something nobody asked for.
+      - uses: jfrog/setup-jfrog-cli@v5
+        with:
+          disable-auto-build-publish: true
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          JF_URL: ${{ vars.JF_URL }}
+          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+
+      # The same two repositories Sokar itself publishes to. They belong together: this
+      # package declares 'Depends: sokar', so split across repositories an operator would need
+      # both configured for the dependency to resolve.
+      #
+      # The three deb.* properties are what get the package indexed. Without them Artifactory
+      # stores the file and apt never sees it, with no error anywhere.
+      - name: Publish the packages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          JF_URL: ${{ vars.JF_URL }}
+          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+        run: |
+          set -eux
+          # --flat: without it the source directory travels too, and the package lands at
+          # pool/main/s/sokar-agent-pi/target/... instead of beside its siblings.
+          jf rt upload "target/*.deb" "sokar-dist-deb/pool/main/s/sokar-agent-pi/" \
+              --flat=true \
+              --target-props="deb.distribution=snapshots;deb.component=main;deb.architecture=amd64"
+          jf rt upload "target/*.rpm" "sokar-dist-rpm/snapshots/" --flat=true
+
+      # Uploaded is not installable. Indexing is asynchronous, and a package with missing or
+      # wrong properties is stored happily and never listed - invisible until an operator's
+      # apt reports nothing to install.
+      - name: The package is indexed, not merely stored
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          JF_URL: ${{ vars.JF_URL }}
+          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+        run: |
+          set -eu
+          tries=0
+          while [ "$tries" -lt 20 ]; do
+              if jf rt curl -s -XGET \
+                  "/sokar-dist-deb/dists/snapshots/main/binary-amd64/Packages" 2>/dev/null \
+                  | grep -q "Package: sokar-agent-pi"; then
+                  echo "  OK    the Debian index lists sokar-agent-pi"
+                  exit 0
+              fi
+              tries=$((tries + 1))
+              sleep 6
+          done
+          echo "::error::sokar-agent-pi never appeared in the index - uploaded but not indexed"
+          exit 1
+
+  # The last step, and the only one that installs what an operator installs. Everything above
+  # proves the code is right; this proves the PACKAGE is - on a stock image that has never seen
+  # this project, from the repository, with the signature and the dependency on sokar both
+  # resolved the way a user resolves them.
+  #
+  # Both distributions, because the two differ in ways that have already bitten: podman 4 on
+  # 24.04 against podman 5 on Fedora, and SELinux enforcing on one of them.
+  #
+  # Only on main, and only after the packages are published - it installs them.
+  acceptance:
+    name: Acceptance - ${{ matrix.os }}
+    runs-on: ubuntu-24.04
+    needs: build
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu, fedora]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install the Hetzner client
+        run: pip install --quiet hcloud
+
+      # SOKAR_E2E_OPENROUTER_API_KEY turns the tier 2 half on. Without it the run still checks
+      # that the packages install and that sokar finds the agent, and exits 0 - so a fork or a
+      # revoked key degrades to less coverage rather than to a red build with no information.
+      - name: Acceptance on ${{ matrix.os }}
+        env:
+          REMOTE_BUILD: ${{ secrets.REMOTE_BUILD }}
+          SSH: ${{ secrets.SSH }}
+          SOKAR_CI_LEG: acc-${{ matrix.os }}
+          SOKAR_E2E_OPENROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
+          # This agent's model, set here rather than in a repository setting so it is visible,
+          # reviewable and changes with a commit. What is measured is that the credential was
+          # accepted, so it only has to be cheap and able to follow one instruction.
+          #
+          # Chosen by measurement: a ':free' variant returns rate_limit_exceeded. Pi speaks
+          # whatever its provider speaks rather than a fixed format, so this reaches
+          # OpenRouter's OpenAI-compatible dialect; the model id is the same either way.
+          SOKAR_E2E_MODEL: z-ai/glm-5.3-flash
+        run: python3 buildtools/ci/remote-acceptance.py --os ${{ matrix.os }}
+
+      - name: Delete what this run created
+        if: always()
+        env:
+          REMOTE_BUILD: ${{ secrets.REMOTE_BUILD }}
+          SOKAR_CI_LEG: acc-${{ matrix.os }}
+        run: python3 buildtools/ci/sweep.py --mine

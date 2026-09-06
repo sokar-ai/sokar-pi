@@ -1,0 +1,352 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+         child.project.url.inherit.append.path="false">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.fuin</groupId>
+        <artifactId>pom</artifactId>
+        <version>2.0.2</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>org.fuin.sokar</groupId>
+    <artifactId>sokar-agent-pi</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <name>Sokar Agent Pi</name>
+    <description>Sokar agent for Pi</description>
+
+    <url>https://github.com/fuinorg/sokar-pi/</url>
+
+    <scm child.scm.url.inherit.append.path="false"
+         child.scm.connection.inherit.append.path="false"
+         child.scm.developerConnection.inherit.append.path="false">
+        <url>https://github.com/fuinorg/sokar-pi/</url>
+        <connection>scm:git:git://github.com/fuinorg/sokar-pi.git</connection>
+        <developerConnection>scm:git:git@github.com:fuinorg/sokar-pi.git</developerConnection>
+    </scm>
+
+    <issueManagement>
+        <system>GitHub Issues</system>
+        <url>https://github.com/fuinorg/sokar-pi/issues</url>
+    </issueManagement>
+
+    <properties>
+        <java.release.version>25</java.release.version>
+
+        <!-- The Pi version this package ships. Filtered into pi.yaml, and carried in the
+             package description so 'dpkg -s' and 'rpm -qi' answer it. Bumping it means
+             regenerating the lockfile beside package.json. Not part of the package version. -->
+        <agent.cli.version>0.85.0</agent.cli.version>
+
+        <!-- The published contract this builds against. Nothing else of Sokar's is on the
+             classpath, and no checkout of the sokar repository is needed to build here. -->
+        <sokar.version>0.1.0-SNAPSHOT</sokar.version>
+
+        <fuin-bom.version>1.0.2</fuin-bom.version>
+        <build-helper.version>3.6.1</build-helper.version>
+        <exec-maven-plugin.version>3.5.0</exec-maven-plugin.version>
+        <jdeb.version>1.14</jdeb.version>
+        <rpm.version>1.13.0</rpm.version>
+        <native-maven-plugin.version>1.1.11</native-maven-plugin.version>
+
+        <agent.install.dir>/usr/libexec/sokar/agents</agent.install.dir>
+        <!-- On for local and CI builds, off for releases, where the key exists. -->
+        <rpm.sign.skip>true</rpm.sign.skip>
+
+        <!-- The agent is a binary, not a library. Nobody resolves this from Maven. -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
+
+    <dependencyManagement>
+
+        <dependencies>
+
+            <!-- Where jspecify, junit and assertj get their versions, as in the sokar
+                 repository. Also pins Byte Buddy to a release that accepts JDK 25 class files. -->
+
+            <dependency>
+                <groupId>org.fuin</groupId>
+                <artifactId>bom</artifactId>
+                <version>${fuin-bom.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+        </dependencies>
+
+    </dependencyManagement>
+
+    <dependencies>
+
+        <!-- compile: the agent contract, and nothing else. Never another agent. -->
+
+        <dependency>
+            <groupId>org.fuin.sokar</groupId>
+            <artifactId>sokar-agent-api</artifactId>
+            <version>${sokar.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.fuin.sokar</groupId>
+            <artifactId>sokar-wire</artifactId>
+            <version>${sokar.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jspecify</groupId>
+            <artifactId>jspecify</artifactId>
+        </dependency>
+
+        <!-- test: versions come from the org.fuin parent, as they do in the sokar repository -->
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>agent/*.yaml</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>agent/*.yaml</exclude>
+                </excludes>
+            </resource>
+        </resources>
+
+    </build>
+
+    <profiles>
+
+        <!-- Requires GraalVM as JAVA_HOME. Produces target/sokar-agent-pi, which is
+             installed into the agent directory and started by Sokar on demand. -->
+
+        <profile>
+            <id>native</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <version>${native-maven-plugin.version}</version>
+                        <extensions>true</extensions>
+                        <executions>
+                            <execution>
+                                <id>build-sokar-agent-pi</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>compile-no-fork</goal>
+                                </goals>
+                                <configuration>
+                                    <imageName>sokar-agent-pi</imageName>
+                                    <mainClass>org.fuin.sokar.agent.impl.pi.PiAgent</mainClass>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Requires -Pnative to have produced the binary: mvn -Pnative,dist verify -->
+
+        <profile>
+            <id>dist</id>
+            <build>
+                <plugins>
+
+                    <!-- What this package ships beyond the adapter: Pi with its dependencies
+                         and the Node runtime, built in a pinned container so no Node toolchain
+                         is needed here. The script says so and does nothing without podman. -->
+
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>${exec-maven-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>build-pi-tree</id>
+                                <phase>prepare-package</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>${project.basedir}/buildtools/build-pi-tree.sh</executable>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>${build-helper.version}</version>
+                        <executions>
+                            <execution>
+                                <id>package-revision</id>
+                                <phase>validate</phase>
+                                <goals>
+                                    <goal>regex-property</goal>
+                                </goals>
+                                <configuration>
+                                    <!-- Debian and RPM sort '~' below everything, so
+                                         1.0.0~SNAPSHOT is older than 1.0.0. Left as '-SNAPSHOT'
+                                         it sorts ABOVE the release and apt refuses the upgrade. -->
+                                    <name>agent.package.version</name>
+                                    <value>${project.version}</value>
+                                    <regex>-SNAPSHOT$</regex>
+                                    <replacement>~SNAPSHOT</replacement>
+                                    <failIfNoMatch>false</failIfNoMatch>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.vafer</groupId>
+                        <artifactId>jdeb</artifactId>
+                        <version>${jdeb.version}</version>
+                        <executions>
+                            <execution>
+                                <id>deb</id>
+                                <!-- Not 'package': native-image binds there too. -->
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>jdeb</goal>
+                                </goals>
+                                <configuration>
+                                    <name>${project.artifactId}</name>
+                                    <deb>${project.build.directory}/${project.artifactId}_${agent.package.version}_amd64.deb</deb>
+                                    <controlDir>${project.basedir}/src/deb/control</controlDir>
+                                    <dataSet>
+                                        <!-- The tree, which is most of what an operator installs. -->
+                                        <data>
+                                            <src>${project.build.directory}/pi-tree.tar.gz</src>
+                                            <type>file</type>
+                                            <mapper>
+                                                <type>perm</type>
+                                                <prefix>/usr/share/sokar/agents/pi</prefix>
+                                                <filemode>644</filemode>
+                                                <user>root</user>
+                                                <group>root</group>
+                                            </mapper>
+                                        </data>
+                                        <data>
+                                            <src>${project.build.directory}/${project.artifactId}</src>
+                                            <type>file</type>
+                                            <mapper>
+                                                <type>perm</type>
+                                                <prefix>${agent.install.dir}</prefix>
+                                                <filemode>755</filemode>
+                                                <user>root</user>
+                                                <group>root</group>
+                                            </mapper>
+                                        </data>
+                                        <!-- Debian Policy 12.5: every binary package ships one. -->
+                                        <data>
+                                            <src>${project.basedir}/src/deb/copyright/copyright</src>
+                                            <type>file</type>
+                                            <mapper>
+                                                <type>perm</type>
+                                                <prefix>/usr/share/doc/${project.artifactId}</prefix>
+                                                <filemode>644</filemode>
+                                                <user>root</user>
+                                                <group>root</group>
+                                            </mapper>
+                                        </data>
+                                    </dataSet>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>de.dentrassi.maven</groupId>
+                        <artifactId>rpm</artifactId>
+                        <version>${rpm.version}</version>
+                        <executions>
+                            <execution>
+                                <id>rpm</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>rpm</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <packageName>${project.artifactId}</packageName>
+                            <version>${agent.package.version}</version>
+                            <snapshotVersion>${agent.package.version}</snapshotVersion>
+                            <release>1</release>
+                            <summary>${project.description}</summary>
+                            <description>${project.description} ${agent.cli.version}. Installs into /usr/libexec/sokar/agents, where the sokar binary scans for agents.</description>
+                            <!-- Without this a snapshot build gets a timestamp release and the
+                                 rpm and the deb disagree about what version they are. -->
+                            <forceRelease>true</forceRelease>
+                            <architecture>x86_64</architecture>
+                            <group>Applications/System</group>
+                            <license>GPL-3.0-or-later</license>
+                            <packager>fuin.org</packager>
+                            <requires>
+                                <require>sokar</require>
+                            </requires>
+                            <signature>
+                                <skip>${rpm.sign.skip}</skip>
+                            </signature>
+                            <entries>
+                                <entry>
+                                    <name>/usr/share/sokar/agents/pi/pi-tree.tar.gz</name>
+                                    <file>${project.build.directory}/pi-tree.tar.gz</file>
+                                    <mode>0644</mode>
+                                    <user>root</user>
+                                    <group>root</group>
+                                </entry>
+                                <entry>
+                                    <name>${agent.install.dir}/${project.artifactId}</name>
+                                    <file>${project.build.directory}/${project.artifactId}</file>
+                                    <mode>0755</mode>
+                                    <user>root</user>
+                                    <group>root</group>
+                                </entry>
+                                <!-- 'license' marks it %license, so 'rpm -qL' answers. -->
+                                <entry>
+                                    <name>/usr/share/licenses/${project.artifactId}/LICENSE</name>
+                                    <file>${project.basedir}/LICENSE</file>
+                                    <mode>0644</mode>
+                                    <user>root</user>
+                                    <group>root</group>
+                                    <license>true</license>
+                                </entry>
+                            </entries>
+                        </configuration>
+                    </plugin>
+
+                </plugins>
+            </build>
+        </profile>
+
+    </profiles>
+
+</project>

@@ -1,0 +1,187 @@
+#!/usr/bin/env bash
+#
+# What only a real machine and a real credential can answer, run against the PUBLISHED
+# packages rather than a build tree.
+#
+# This is the last step for this agent, and it is deliberately the only one that installs
+# from the package repository: everything before it proves the code is right, this proves
+# what an operator actually gets is right. The two have been different before - a package
+# that carried a stale binary, a package whose dependency would not resolve.
+#
+# Two halves:
+#
+#   install    the packages install from Artifactory, sokar finds the agent it was never
+#              linked against, and the hooks register. No credential needed.
+#
+#   tier 2     a task authenticates against a real provider and completes a prompt, and the
+#              real credential never enters the container or any log. Needs
+#              SOKAR_E2E_OPENROUTER_API_KEY; without it this half is skipped and the script
+#              still exits 0, so it is safe where there is no account.
+#
+# CREDENTIALS COME FROM THE ENVIRONMENT, NEVER FROM ARGV - a command line is readable by
+# every process on the machine.
+set -uo pipefail
+
+FAILURES=0
+pass() { printf '  \033[32mPASS\033[0m  %s\n' "$1"; }
+fail() { printf '  \033[31mFAIL\033[0m  %s\n' "$1"; FAILURES=$((FAILURES + 1)); }
+info() { printf '        %s\n' "$1"; }
+skip() { printf '  \033[33mSKIP\033[0m  %s\n' "$1"; }
+
+WORK="$(mktemp -d)"
+PROJECT="acceptance-$$"
+CONTAINER=""
+
+cleanup() {
+    [ -n "$CONTAINER" ] && podman rm -f "$CONTAINER" >/dev/null 2>&1
+    podman rmi -f "sokar/$PROJECT" >/dev/null 2>&1
+    sokar vault unlock --forget >/dev/null 2>&1
+    rm -rf "$WORK" \
+           "${XDG_DATA_HOME:-$HOME/.local/share}/sokar/build/$PROJECT" \
+           "${XDG_DATA_HOME:-$HOME/.local/share}/sokar/mirrors/$PROJECT.git" \
+           "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/sokar/sokar-$PROJECT-"*
+    :
+}
+trap cleanup EXIT
+
+echo "== acceptance: the published packages on a clean machine =="
+
+# ------------------------------------------------------------------ install
+echo
+echo "-- what got installed --"
+
+if command -v sokar >/dev/null 2>&1; then
+    pass "sokar is on PATH ($(sokar --version))"
+else
+    fail "sokar is not installed"
+    exit 1
+fi
+
+# The whole point of the split: this binary was built in another repository, against a
+# published contract, and sokar has never heard of it.
+if sokar agents 2>/dev/null | grep -q '^pi'; then
+    pass "sokar discovers the agent it was never linked against"
+    info "$(sokar agents 2>/dev/null | grep '^pi')"
+else
+    fail "sokar does not list the pi agent"
+    sokar agents 2>&1 | head -5 | while read -r line; do info "$line"; done
+fi
+
+if sokar setup >/dev/null 2>&1; then
+    pass "sokar setup registered the podman hooks"
+else
+    fail "sokar setup failed"
+fi
+
+echo
+echo "-- what sokar thinks of this machine --"
+podman --version | while read -r line; do info "$line"; done
+sokar doctor 2>&1 | while read -r line; do info "$line"; done
+
+# ------------------------------------------------------------------ tier 2
+echo
+echo "-- tier 2: a real credential --"
+
+if [ -z "${SOKAR_E2E_OPENROUTER_API_KEY:-}" ]; then
+    skip "no SOKAR_E2E_OPENROUTER_API_KEY, so nothing here runs"
+    info "the install half above is what this run proved"
+    echo
+    echo "== $FAILURES check(s) failed =="
+    exit "$FAILURES"
+fi
+
+CREDENTIAL="$SOKAR_E2E_OPENROUTER_API_KEY"
+
+# This run's own vault, with its own passphrase, in its own directory. The operator's is
+# never read or replaced - and on a CI server there is not one anyway, which is exactly why
+# the redirect must be explicit rather than incidental.
+export SOKAR_VAULT="$WORK/vault.bin"
+
+if ! sokar vault unlock --passphrase-command "printf acceptance" >/dev/null 2>&1; then
+    fail "could not create this run's vault at $SOKAR_VAULT"
+    echo; echo "== $FAILURES check(s) failed =="; exit 1
+fi
+
+# Keyed by PROVIDER, not by agent: the credential belongs to whoever issued it, so any agent
+# pointed at OpenRouter finds this one entry.
+if printf '%s' "$CREDENTIAL" | sokar vault put openrouter --type api-key >/dev/null 2>&1; then
+    pass "the vault stored the credential"
+else
+    fail "the vault would not store the credential"
+    echo; echo "== $FAILURES check(s) failed =="; exit 1
+fi
+
+# A real credential makes these searchable in a way a fake one cannot: a fake one may
+# coincidentally not be stored at all.
+if sokar vault list 2>/dev/null | grep -qF "$CREDENTIAL"; then
+    fail "vault list printed the credential value"
+else
+    pass "vault list does not print the value"
+fi
+
+if grep -qF "$CREDENTIAL" "$SOKAR_VAULT" 2>/dev/null; then
+    fail "the credential is in the clear in the vault file"
+else
+    pass "the credential is not recoverable from the vault file"
+fi
+
+cat > "$WORK/project.yml" <<EOF
+project:
+  name: "$PROJECT"
+  security_class: "guarded"
+image:
+  base_image: "ubuntu:24.04"
+EOF
+
+# --clearance deny: an acceptance run must never raise a prompt on somebody's desktop and
+# then wait for it.
+START_LOG="$WORK/start.log"
+(cd "$WORK" && timeout 900 sokar task run --agent pi \
+    --keep --no-attach --clearance deny > "$START_LOG" 2>&1)
+
+CONTAINER="$(grep '^container ' "$START_LOG" | awk '{print $2}')"
+if [ -z "$CONTAINER" ]; then
+    fail "the task did not start"
+    tail -8 "$START_LOG" | while read -r line; do info "$line"; done
+    echo; echo "== $FAILURES check(s) failed =="; exit 1
+fi
+pass "the task started (container $CONTAINER)"
+
+# CI sets SOKAR_E2E_MODEL in the workflow; this fallback is for running the suite by hand.
+# Not a ':free' variant - 'z-ai/glm-5.2:free' returned rate_limit_exceeded on three consecutive
+# attempts, and a gate that fails on somebody else's quota is not a gate.
+MODEL="${SOKAR_E2E_MODEL:-z-ai/glm-5.3-flash}"
+ANSWER="$(podman exec "$CONTAINER" sh -c \
+    "timeout 240 pi --print --model '$MODEL' 'Reply with exactly the word SOKARLIVE and nothing else.' 2>&1" \
+    2>/dev/null)"
+
+if echo "$ANSWER" | grep -q "SOKARLIVE"; then
+    pass "the agent authenticated against OpenRouter and completed a prompt"
+else
+    fail "the agent did not complete the prompt"
+    echo "$ANSWER" | head -6 | while read -r line; do info "$line"; done
+fi
+
+# These two are worth having even when the one above fails. A credential scheme that
+# authenticates by handing the real key to the agent has not failed loudly - it has failed
+# quietly, and only a real credential makes the leak searchable.
+if podman exec "$CONTAINER" sh -c 'env' 2>/dev/null | grep -qF "$CREDENTIAL"; then
+    fail "the real credential is in the container's environment"
+else
+    pass "the container holds no credential, only a task-scoped token"
+fi
+
+STATE="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/sokar"
+if grep -rqF "$CREDENTIAL" "$STATE" "$START_LOG" 2>/dev/null; then
+    fail "the real credential appears in Sokar's own logs"
+else
+    pass "the credential appears in no log this run produced"
+fi
+
+echo
+if [ "$FAILURES" -eq 0 ]; then
+    echo "== all checks passed =="
+else
+    echo "== $FAILURES check(s) failed =="
+fi
+exit "$FAILURES"
