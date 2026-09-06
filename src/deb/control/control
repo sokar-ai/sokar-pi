@@ -16,5 +16,5 @@ Description: [[description]] [[agent.cli.version]]
  .
  The package version is this agent's own version, independent of Sokar's release
  line. The agent CLI version it installs is on the Description line above, so
- "dpkg -s sokar-agent-claude" answers what an image build will fetch without
+ "dpkg -s sokar-agent-pi" answers which Pi this package carries, without
  consulting the definition.
