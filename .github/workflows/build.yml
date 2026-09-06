@@ -7,11 +7,17 @@
 # compiles against the contract, that its unit tests pass, and that it packages.
 name: Build
 
+# A push that only touches documentation builds nothing. Nothing in the build reads a
+# markdown file, and on main a run rents two machines and republishes - which is a lot to
+# spend on a typo. A push that mixes docs and code still builds: the filter is per push,
+# not per file. workflow_dispatch ignores it, so a run can always be forced.
 on:
   push:
     branches: ['**']
+    paths-ignore: ['**/*.md']
   pull_request:
     branches: ['**']
+    paths-ignore: ['**/*.md']
   workflow_dispatch:
 
 concurrency:
