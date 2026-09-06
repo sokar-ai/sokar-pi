@@ -139,6 +139,10 @@ jobs:
 
     strategy:
       fail-fast: false
+      # One at a time. Three repositories rent machines from one Hetzner project and nothing
+      # coordinates them; running both legs at once doubles this repository's share of a limit
+      # it does not own. Each leg is minutes, so the cost is small and the collisions are not.
+      max-parallel: 1
       matrix:
         os: [ubuntu, fedora]
 
