@@ -93,6 +93,11 @@ jobs:
               --target-props="deb.distribution=snapshots;deb.component=main;deb.architecture=amd64"
           jf rt upload "target/*.rpm" "sokar-dist-rpm/snapshots/" --flat=true
 
+          # The bill beside the package, readable without installing. It also travels inside
+          # both packages at /usr/share/sokar/sbom.
+          jf rt upload "target/sokar-agent-pi.cdx.json" "sokar-dist-deb/pool/main/s/sokar-agent-pi/" --flat=true
+          jf rt upload "target/sokar-agent-pi.cdx.json" "sokar-dist-rpm/snapshots/" --flat=true
+
       # Uploaded is not installable. Indexing is asynchronous, and a package with missing or
       # wrong properties is stored happily and never listed - invisible until an operator's
       # apt reports nothing to install.
