@@ -73,6 +73,30 @@ else
     fail "sokar setup failed"
 fi
 
+# The bill the package carries, checked where it matters: on a machine that installed the
+# package rather than in the build that made it. An automated update gate diffs this against
+# the published one, so a package that ships none, or one describing something else, breaks
+# the gate silently rather than loudly.
+BOM=/usr/share/sokar/sbom/sokar-agent-pi.cdx.json
+if [ -r "$BOM" ] && python3 -c "
+import json, sys
+bom = json.load(open('$BOM'))
+assert bom.get('bomFormat') == 'CycloneDX'
+assert bom['metadata']['component']['name'] == 'sokar-agent-pi'
+def walk(items):
+    for c in items or []:
+        yield c
+        yield from walk(c.get('components'))
+names = {c['name'] for c in walk(bom.get('components'))}
+assert 'sokar-agent-pi-tree' in names, 'the bill does not name sokar-agent-pi-tree'
+print(len(names))
+" > /tmp/bom-names 2>/dev/null; then
+    pass "the installed package carries a bill naming sokar-agent-pi-tree ($(cat /tmp/bom-names) components)"
+else
+    fail "the installed package carries no usable bill at $BOM"
+fi
+rm -f /tmp/bom-names
+
 echo
 echo "-- what sokar thinks of this machine --"
 podman --version | while read -r line; do info "$line"; done
