@@ -176,17 +176,3 @@ request   POST /api/v1/chat/completions -> 200 from the provider
   the same directory, and that the extension file exists in the container.
 - **`404` or "model not found"** — the base URL lost its `/api/v1`, or gained a
   second `/v1`.
-
-## Checking it
-
-**There is no acceptance suite for this agent yet.** `buildtools/e2e-tier1.sh` no
-longer names any agent — `SOKAR_E2E_AGENT=pi` points it here — but it has never been
-run that way, so what it would find is unknown. Tier 2 is not in this repository at
-all: it asks whether *this agent* authenticates against *this provider*, which is the
-agent's question, and it belongs with Pi when Pi moves to its own repository.
-
-What Pi has instead is a run that was measured by hand on 2026-09-04: a real
-prompt answered (`"text":"SOKARLIVE"`), `request POST /api/v1/chat/completions ->
-200 from the provider` in `vault.log`, and no `sk-or-` anywhere in the
-container's environment or filesystem. Making that a suite is the obvious next
-piece of work here.
