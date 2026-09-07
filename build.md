@@ -99,8 +99,9 @@ rootless, so running the suite as root would prove less), runs the suite and des
 server in a `finally`. A `cpx12` is enough - one core and 2 GB, because this installs
 packages and runs a single prompt.
 
-Both distributions, because they differ in ways that have already caused bugs: podman 4
-on Ubuntu 24.04 against podman 5 on Fedora, and SELinux enforcing on one of them.
+Both distributions, because they differ in ways that have already caused bugs: the `.deb`
+path and AppArmor on Ubuntu against the `.rpm` path and SELinux enforcing on Fedora. Ubuntu
+26.04, not 24.04 - Sokar needs podman 5, and 24.04 ships 4.9.3 for the whole of its life.
 
 Two halves:
 

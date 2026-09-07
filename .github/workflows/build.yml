@@ -29,9 +29,13 @@ jobs:
   build:
     name: Build and unit tests
     # Pinned, not 'ubuntu-latest'. The binary is a native image and links glibc dynamically, so
-    # it runs only on that release or newer - and 'ubuntu-latest' moves. The day it becomes
-    # 26.04 the package would stop launching on the current LTS, at the user's machine, with
-    # nothing here going red. 24.04 is the floor Sokar supports.
+    # it runs only on that release or newer - and 'ubuntu-latest' moves. Built on the OLDEST
+    # glibc it must run against, which keeps it working on every machine Sokar itself runs on.
+    #
+    # 24.04 is no longer a machine Sokar *runs* on - it needs podman 5 and 24.04 ships 4.9.3 for
+    # its whole life - but it is still the right place to compile: an agent binary built here
+    # starts anywhere a newer Sokar does, and one built on 26.04 would not. The acceptance leg
+    # is what runs on a supported release.
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -134,7 +138,7 @@ jobs:
   # resolved the way a user resolves them.
   #
   # Both distributions, because the two differ in ways that have already bitten: podman 4 on
-  # 24.04 against podman 5 on Fedora, and SELinux enforcing on one of them.
+  # 26.04 and Fedora 44, which differ in package format and security module.
   #
   # Only on main, and only after the packages are published - it installs them.
   acceptance:

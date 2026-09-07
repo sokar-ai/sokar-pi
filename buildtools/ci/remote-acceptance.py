@@ -34,7 +34,12 @@ PACKAGE = "sokar-agent-pi"
 
 # Stock images, and the versions matter: the deb must install on the oldest release Sokar
 # supports, and the rpm on a current Fedora with SELinux enforcing.
-IMAGES = {"ubuntu": "ubuntu-24.04", "fedora": "fedora-44"}
+#
+# Ubuntu 26.04, not 24.04: Sokar needs podman 5, and 24.04 ships 4.9.3 in universe for the whole
+# of its life - podman is not in main and a stable release never changes a major version. A run
+# against 24.04 now fails at 'task run' with Sokar refusing the podman it found, which is correct
+# and tells us nothing about the package.
+IMAGES = {"ubuntu": "ubuntu-26.04", "fedora": "fedora-44"}
 
 INSTALL = {
     "ubuntu": """
