@@ -8,6 +8,16 @@ name: pi
 label: Pi
 binary: pi
 
+# No 'sandboxed:' section yet, and that is a gap rather than a decision. Sokar turns an agent's
+# own permission prompts off in every task - the container is what makes the answer always yes -
+# but it adds only what a manifest declares, because the flag is the CLI's own and guessing it
+# would be wrong for every other agent. Claude Code declares --dangerously-skip-permissions and
+# Oh My Pi --auto-approve; Pi's equivalent has not been read off 'pi --help' on a machine that
+# has it. Until it is, this agent will still stop and ask, and an unattended run will wait for an
+# answer nobody is there to give.
+#
+# TODO: run 'pi --help' in a task image and declare what is found.
+
 git_identity:
   name: Pi
   email: noreply@pi.dev
