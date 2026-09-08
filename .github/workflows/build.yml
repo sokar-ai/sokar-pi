@@ -56,8 +56,13 @@ jobs:
       # not proved much. Native-image needs the GraalVM set up above.
       # -Pdist also builds the Pi tree - npm ci and a Node runtime, inside a pinned container.
       # That is why this build is minutes rather than seconds, and why podman is needed here.
+      # The run number is what makes one snapshot package newer than the last. Without it every
+      # build of main produced the same version, so 'apt upgrade' had nothing to do and a
+      # repository called 'snapshots' never actually updated anybody. Counters are per repository
+      # and deliberately not shared with sokar's own.
       - name: Native binary and packages
         run: ./mvnw -B -s settings.xml -Pnative,dist verify -DskipTests
+             -Dagent.snapshot.run=${{ github.run_number }}
 
       - uses: actions/upload-artifact@v7
         with:

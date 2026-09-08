@@ -73,6 +73,37 @@ else
     fail "sokar setup failed"
 fi
 
+# The version the installed package carries, and whether a later build could ever replace it.
+# Asked of dpkg and rpm rather than reasoned about: a flat snapshot is the same version every
+# build, so 'apt upgrade' has nothing to do and whoever installed yesterday stays there until they
+# purge - a repository called 'snapshots' that never updates anybody. The run number is what
+# distinguishes one from the next, and 9 < 10 has to be a NUMERIC comparison or the whole scheme
+# stops working at the tenth build.
+INSTALLED_VERSION="$(dpkg-query -W -f='${Version}' sokar-agent-pi 2>/dev/null \
+    || rpm -q --qf '%{VERSION}' sokar-agent-pi 2>/dev/null)"
+case "$INSTALLED_VERSION" in
+    *-SNAPSHOT)
+        fail "version is '$INSTALLED_VERSION': '-SNAPSHOT' sorts ABOVE the release" ;;
+    *~SNAPSHOT)
+        fail "version is '$INSTALLED_VERSION': a flat snapshot never supersedes the last one" ;;
+    *~snapshot.*)
+        RELEASE="${INSTALLED_VERSION%%~*}"
+        RUN="${INSTALLED_VERSION##*~snapshot.}"
+        if dpkg --compare-versions "$INSTALLED_VERSION" lt "$RELEASE" \
+                && dpkg --compare-versions "${RELEASE}~snapshot.$((RUN + 1))" gt \
+                    "$INSTALLED_VERSION" \
+                && dpkg --compare-versions "${RELEASE}~snapshot.10" gt "${RELEASE}~snapshot.9"
+        then
+            pass "version $INSTALLED_VERSION is below $RELEASE and the next build supersedes it"
+        else
+            fail "version $INSTALLED_VERSION does not order correctly against $RELEASE"
+        fi ;;
+    "")  fail "the installed package reports no version at all" ;;
+    *)   info "version $INSTALLED_VERSION is not a snapshot" ;;
+esac
+
+echo
+
 # The bill the package carries, checked where it matters: on a machine that installed the
 # package rather than in the build that made it. An automated update gate diffs this against
 # the published one, so a package that ships none, or one describing something else, breaks

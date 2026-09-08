@@ -37,6 +37,15 @@
     <properties>
         <java.release.version>25</java.release.version>
 
+        <!-- What distinguishes one snapshot package from the next.
+             Without it every build of main produced the same 1.0.0~SNAPSHOT, so 'apt upgrade'
+             saw nothing to do and whoever installed yesterday stayed on it until they purged.
+             CI passes the run number; a local build is 0, which sorts below every CI build and
+             above the old flat ~SNAPSHOT, so an existing install upgrades cleanly.
+             Kept identical in shape to sokar's own packages, so both sort the same way in one
+             repository. The counters are per repository and are NOT shared. -->
+        <agent.snapshot.run>0</agent.snapshot.run>
+
         <!-- The Pi version this package ships. Filtered into pi.yaml, and carried in the
              package description so 'dpkg -s' and 'rpm -qi' answer it. Bumping it means
              regenerating the lockfile beside package.json. Not part of the package version. -->
@@ -266,12 +275,16 @@
                                 </goals>
                                 <configuration>
                                     <!-- Debian and RPM sort '~' below everything, so
-                                         1.0.0~SNAPSHOT is older than 1.0.0. Left as '-SNAPSHOT'
-                                         it sorts ABOVE the release and apt refuses the upgrade. -->
+                                         1.0.0~snapshot.N is older than 1.0.0. Left as
+                                         '-SNAPSHOT' it sorts ABOVE the release and apt refuses
+                                         the upgrade.
+                                         The run number is what makes one snapshot newer than the
+                                         last: a flat ~SNAPSHOT is the same version every build,
+                                         so apt has nothing to upgrade to. -->
                                     <name>agent.package.version</name>
                                     <value>${project.version}</value>
                                     <regex>-SNAPSHOT$</regex>
-                                    <replacement>~SNAPSHOT</replacement>
+                                    <replacement>~snapshot.${agent.snapshot.run}</replacement>
                                     <failIfNoMatch>false</failIfNoMatch>
                                 </configuration>
                             </execution>
