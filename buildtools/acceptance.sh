@@ -73,6 +73,17 @@ else
     fail "sokar setup failed"
 fi
 
+# Is $1 older than $2? Asked of whichever package manager this machine has: this suite runs on a
+# Debian machine AND a Fedora one, and 'dpkg --compare-versions' does not exist on the second.
+# Both compare digit runs numerically, which is what makes build 10 beat build 9.
+version_lt() {
+    if command -v dpkg >/dev/null 2>&1; then
+        dpkg --compare-versions "$1" lt "$2"
+    else
+        [ "$(rpm --eval "%{lua:print(rpm.vercmp('$1','$2'))}")" = "-1" ]
+    fi
+}
+
 # The version the installed package carries, and whether a later build could ever replace it.
 # Asked of dpkg and rpm rather than reasoned about: a flat snapshot is the same version every
 # build, so 'apt upgrade' has nothing to do and whoever installed yesterday stays there until they
@@ -89,10 +100,15 @@ case "$INSTALLED_VERSION" in
     *~snapshot.*)
         RELEASE="${INSTALLED_VERSION%%~*}"
         RUN="${INSTALLED_VERSION##*~snapshot.}"
-        if dpkg --compare-versions "$INSTALLED_VERSION" lt "$RELEASE" \
-                && dpkg --compare-versions "${RELEASE}~snapshot.$((RUN + 1))" gt \
-                    "$INSTALLED_VERSION" \
-                && dpkg --compare-versions "${RELEASE}~snapshot.10" gt "${RELEASE}~snapshot.9"
+        if ! command -v dpkg >/dev/null 2>&1 && ! command -v rpm >/dev/null 2>&1; then
+            # Said as what it is. The first version of this check asked dpkg on both legs, and
+            # on Fedora - which has no dpkg - reported "does not order correctly": a verdict it
+            # never reached, about a version that was in fact correct. A check that cannot run
+            # must say so rather than answer.
+            fail "neither dpkg nor rpm is here, so the ordering could not be checked at all"
+        elif version_lt "$INSTALLED_VERSION" "$RELEASE" \
+                && version_lt "$INSTALLED_VERSION" "${RELEASE}~snapshot.$((RUN + 1))" \
+                && version_lt "${RELEASE}~snapshot.9" "${RELEASE}~snapshot.10"
         then
             pass "version $INSTALLED_VERSION is below $RELEASE and the next build supersedes it"
         else
