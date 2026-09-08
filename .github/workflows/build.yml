@@ -77,6 +77,19 @@ jobs:
       #
       # In this job rather than a separate one: the native build here takes about twenty
       # seconds, so a second job would cost more in setup than it saves.
+      # A run that builds a correct package and publishes nothing looks exactly like one that
+      # published, because every step below is skipped silently. That cost a full round trip in
+      # sokar-claude-code: a manual re-run resolved the right dependency, built the right
+      # package, threw it away, and the machine under test kept reporting the old version with
+      # nothing anywhere saying why. Said out loud instead.
+      - name: Not publishing
+        if: "!(github.event_name == 'push' && github.ref == 'refs/heads/main')"
+        run: |
+          echo "Not publishing. This run is '${{ github.event_name }}' on '${{ github.ref }}',"
+          echo "and only a push to main publishes. The packages were built and tested here"
+          echo "and are attached to this run as artifacts; nothing reached Artifactory, so"
+          echo "'apt' will still offer whatever was published last."
+
       # The action publishes build-info by itself at the end of the workflow. That goes into
       # 'artifactory-build-info', which this token cannot write, so it warns on every run about
       # something nobody asked for.
