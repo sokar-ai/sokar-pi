@@ -143,3 +143,26 @@ REMOTE_BUILD=... SSH="$(cat key)" SOKAR_E2E_OPENROUTER_API_KEY=... \
 That a real Pi CLI reaches only the hosts its definition declares. That is the
 domain-coverage check, it needs the resolver log from inside a task, and it lives in the
 Sokar repository as `buildtools/e2e-tier1.sh`.
+
+## Acceptance, as a person at a terminal
+
+`src/acceptance` holds Cucumber scenarios that drive a real machine over ssh - a pty for what a
+person sees, no pty for what a script gets - through Sokar's published acceptance kit. They are
+off unless a host is named, so an ordinary build neither resolves the kit nor compiles them:
+
+```
+./mvnw -s settings.xml verify \
+    -Dsokar.acceptance.host=<machine with sokar and this agent's package installed> \
+    -Dsokar.acceptance.user=acceptance \
+    -Dsokar.acceptance.key=$HOME/.ssh/id_ed25519
+```
+
+The report lands in `target/acceptance.html`. The scenarios tagged `@credential` need
+`SOKAR_E2E_OPENROUTER_API_KEY` and `SOKAR_E2E_MODEL` in the environment of the machine running the
+suite - typed into the vault at a terminal, never on a command line - and are **skipped**, not
+passed, without them. There is no glue class here: every step is the kit's, which is what keeps
+this repository free of test code that knows about ssh.
+
+In CI the same suite runs from the runner against the rented machine when the repository variable
+`SOKAR_ACCEPTANCE_KIT` is set, beside `buildtools/acceptance.sh` until it has been green there
+for real; see the comment in `.github/workflows/build.yml`.

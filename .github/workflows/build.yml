@@ -180,6 +180,15 @@ jobs:
       - name: Install the Hetzner client
         run: pip install --quiet hcloud
 
+      # For the Cucumber half, which runs on this runner against the rented machine and needs
+      # the JDK the enforcer insists on. The scripted half needs nothing here.
+      - name: Set up Java
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '25'
+          distribution: 'graalvm-community'
+          cache: 'maven'
+
       # SOKAR_E2E_OPENROUTER_API_KEY turns the tier 2 half on. Without it the run still checks
       # that the packages install and that sokar finds the agent, and exits 0 - so a fork or a
       # revoked key degrades to less coverage rather than to a red build with no information.
@@ -197,7 +206,16 @@ jobs:
           # whatever its provider speaks rather than a fixed format, so this reaches
           # OpenRouter's OpenAI-compatible dialect; the model id is the same either way.
           SOKAR_E2E_MODEL: z-ai/glm-5.3-flash
+        # '--cucumber' adds the suite in src/acceptance, run from this runner as a person at a
+        # terminal, with failures as annotations on the feature file and the run as a job summary.
+        # Switched on by the repository variable SOKAR_ACCEPTANCE_KIT rather than always: the suite
+        # resolves sokar-acceptance-kit from Central, and until that snapshot is published every
+        # push to main would go red on a dependency rather than on anything about this agent. Set
+        # the variable once the kit is there; nothing here changes. The script keeps running beside
+        # it until the suite has been green here for real - two sources for one fact is a trap,
+        # and so is deleting the one that works before the other has ever run.
         run: python3 buildtools/ci/remote-acceptance.py --os ${{ matrix.os }}
+             ${{ vars.SOKAR_ACCEPTANCE_KIT != '' && '--cucumber' || '' }}
 
       - name: Delete what this run created
         if: always()

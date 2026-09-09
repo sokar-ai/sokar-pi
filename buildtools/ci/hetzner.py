@@ -74,6 +74,28 @@ def client() -> Client:
 SSH_KEY_VARIABLE = "SSH"
 
 
+def key_material(path: str | None) -> str:
+    """
+    Returns the private key itself, from the environment or a file, for something that takes the
+    material rather than an agent - the acceptance kit's ssh client does.
+
+    Same source and same cleaning as agent(), so the two cannot disagree about which key this is.
+
+    :param path: A key file, for a developer's own machine. Ignored when the key is in the
+        environment.
+    :return: The key, with a trailing newline and no carriage returns.
+    """
+    material = os.environ.get(SSH_KEY_VARIABLE, "")
+    if material.strip():
+        return material.replace("\r\n", "\n").replace("\r", "\n").strip() + "\n"
+    if path is None or not os.path.isfile(path):
+        sys.exit(
+            f"No private key. Set {SSH_KEY_VARIABLE} to the key itself, or pass "
+            f"--ssh-private-key; there is nothing at {path}"
+        )
+    return Path(path).read_text()
+
+
 def agent(path: str) -> dict[str, str]:
     """
     Loads the private key into an ssh-agent and returns the environment that reaches it.

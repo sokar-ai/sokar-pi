@@ -62,6 +62,7 @@
         <jdeb.version>1.14</jdeb.version>
         <rpm.version>1.13.0</rpm.version>
         <native-maven-plugin.version>1.1.11</native-maven-plugin.version>
+        <maven-failsafe-plugin.version>3.5.5</maven-failsafe-plugin.version>
 
         <agent.install.dir>/usr/libexec/sokar/agents</agent.install.dir>
         <sbom.install.dir>/usr/share/sokar/sbom</sbom.install.dir>
@@ -428,6 +429,94 @@
                         </configuration>
                     </plugin>
 
+                </plugins>
+            </build>
+        </profile>
+
+
+        <!-- The acceptance suite: what a person does at a terminal with this agent, run against a
+             real machine through Sokar's published kit. Off unless a host is named - then the
+             ordinary build neither resolves the kit nor compiles src/acceptance, so main stays
+             green whatever Central holds. Naming a host is what turns it on:
+
+               ./mvnw -s settings.xml verify -Dsokar.acceptance.host=<machine> \
+                   -Dsokar.acceptance.user=acceptance -Dsokar.acceptance.key=<key>
+
+             Its own source root rather than src/test: these are integration tests that rent a
+             machine, and a unit test that cannot run without one would make 'mvn test' mean
+             something different here than everywhere else. -->
+
+        <profile>
+            <id>acceptance</id>
+            <activation>
+                <property><name>sokar.acceptance.host</name></property>
+            </activation>
+            <properties>
+                <sokar.acceptance.user>acceptance</sokar.acceptance.user>
+                <sokar.acceptance.key>${user.home}/.ssh/id_ed25519</sokar.acceptance.key>
+                <sokar.acceptance.as/>
+            </properties>
+            <dependencies>
+                <!-- test: brings Cucumber, the JUnit platform, the ssh client and AssertJ. The
+                     one thing of Sokar's an agent may depend on in test scope beside the API. -->
+                <dependency>
+                    <groupId>org.fuin.sokar</groupId>
+                    <artifactId>sokar-acceptance-kit</artifactId>
+                    <version>${sokar.version}</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>${build-helper.version}</version>
+                        <executions>
+                            <execution>
+                                <id>acceptance-sources</id>
+                                <phase>generate-test-sources</phase>
+                                <goals>
+                                    <goal>add-test-source</goal>
+                                    <goal>add-test-resource</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>src/acceptance/java</source>
+                                    </sources>
+                                    <resources>
+                                        <resource>
+                                            <directory>src/acceptance/resources</directory>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <version>${maven-failsafe-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <sokar.acceptance.host>${sokar.acceptance.host}</sokar.acceptance.host>
+                                <sokar.acceptance.user>${sokar.acceptance.user}</sokar.acceptance.user>
+                                <sokar.acceptance.as>${sokar.acceptance.as}</sokar.acceptance.as>
+                                <sokar.acceptance.key>${sokar.acceptance.key}</sokar.acceptance.key>
+                                <!-- Repository-relative, so an annotation lands on the feature file. -->
+                                <sokar.acceptance.features>src/acceptance/resources/</sokar.acceptance.features>
+                                <cucumber.plugin>pretty, html:target/acceptance.html, json:target/acceptance.json, org.fuin.sokar.acceptance.GitHubReport</cucumber.plugin>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
                 </plugins>
             </build>
         </profile>

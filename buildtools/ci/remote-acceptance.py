@@ -80,6 +80,10 @@ def main() -> int:
     parser.add_argument("--ssh-private-key", default=None,
                         help="defaults to the SSH environment variable")
     parser.add_argument("--keep", action="store_true", help="leave it running, for debugging")
+    parser.add_argument("--cucumber", action="store_true",
+                        help="after the script, run the Cucumber suite FROM THIS MACHINE against "
+                             "the server, the way a person at a terminal would reach it; needs "
+                             "a JDK here and Sokar's acceptance kit resolvable from Central")
     args = parser.parse_args()
 
     environment = hetzner.agent(args.ssh_private_key)
@@ -128,7 +132,28 @@ def main() -> int:
         run(address, environment,
             f"cd /home/{USER} && XDG_RUNTIME_DIR=/run/user/$(id -u) {exported}./acceptance.sh")
 
+        if args.cucumber:
+            # The suite runs here rather than on the server: it drives a terminal over ssh, so
+            # the thing being simulated is somebody sitting at this end - and here is also where
+            # GITHUB_* exists, so a failure lands as an annotation on the feature file. The key
+            # goes to the suite as material in the environment, never as a file, for the reason
+            # recorded in hetzner.agent; SOKAR_E2E_* passes through as it is.
+            print("\n-- acceptance, as a person at a terminal --")
+            cucumber(address, args.ssh_private_key)
+
     return 0
+
+
+def cucumber(address: str, key_file: str | None) -> None:
+    """Runs the Cucumber suite from this machine against the server, failing the script if it fails."""
+    material = os.environ.get("SSH") or hetzner.key_material(key_file)
+    repo = Path(__file__).resolve().parents[2]
+    result = subprocess.run(
+        ["./mvnw", "-B", "-s", "settings.xml", "verify",
+         f"-Dsokar.acceptance.host={address}", f"-Dsokar.acceptance.user={USER}"],
+        cwd=repo, env={**os.environ, "SOKAR_ACCEPTANCE_KEY": material})
+    if result.returncode != 0:
+        raise SystemExit(result.returncode)
 
 
 def shell_quote(value: str) -> str:
