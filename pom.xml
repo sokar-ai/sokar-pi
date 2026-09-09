@@ -77,6 +77,20 @@
 
         <dependencies>
 
+            <!-- First, so its versions win: the three Sokar artifacts, and JUnit as ONE set
+                 with the platform Cucumber is built against. Imported before the org BOM on
+                 purpose - that one pins a Jupiter beside a suite engine from a different
+                 platform, and through the acceptance kit the mixed set reaches this build and
+                 the suite engine dies on a missing method. -->
+
+            <dependency>
+                <groupId>org.fuin.sokar</groupId>
+                <artifactId>sokar-bom</artifactId>
+                <version>${sokar.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
             <!-- Where jspecify, junit and assertj get their versions, as in the sokar
                  repository. Also pins Byte Buddy to a release that accepts JDK 25 class files. -->
 
@@ -99,13 +113,11 @@
         <dependency>
             <groupId>org.fuin.sokar</groupId>
             <artifactId>sokar-agent-api</artifactId>
-            <version>${sokar.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.fuin.sokar</groupId>
             <artifactId>sokar-wire</artifactId>
-            <version>${sokar.version}</version>
         </dependency>
 
         <dependency>
@@ -462,7 +474,6 @@
                 <dependency>
                     <groupId>org.fuin.sokar</groupId>
                     <artifactId>sokar-acceptance-kit</artifactId>
-                    <version>${sokar.version}</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
