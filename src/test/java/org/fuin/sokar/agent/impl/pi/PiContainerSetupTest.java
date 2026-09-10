@@ -67,4 +67,13 @@ class PiContainerSetupTest {
                 .as("written as a JSON literal, so a stray quote cannot end the string")
                 .contains("\"tok\\\"en\\\\with\\nquotes\"");
     }
+
+    @Test
+    void writesNothingWhenThereIsNoTokenToPresent() {
+
+        // The endpoint alone is half a wiring: the extension would carry an empty token, which
+        // Pi rejects looking exactly like a wrong one.
+        assertThat(new PiContainerSetup().files(new org.fuin.sokar.agent.api.SetupContext(
+                "  ", "api-key", "/workspace", "http://127.0.0.1:9419", "openrouter"))).isEmpty();
+    }
 }
