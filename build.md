@@ -176,7 +176,7 @@ it has failed quietly, and only a real credential makes the leak searchable.
 Run it by hand with `workflow_dispatch`, or locally:
 
 ```
-REMOTE_BUILD=... SSH="$(cat key)" SOKAR_E2E_OPENROUTER_API_KEY=... \
+HETZNER_API=... HETZNER_SSH="$(cat key)" SOKAR_E2E_OPENROUTER_API_KEY=... \
   java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main acceptance \
       --os fedora --package sokar-agent-pi --script buildtools/acceptance.sh
 ```

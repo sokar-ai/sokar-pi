@@ -154,8 +154,8 @@ jobs:
       # SOKAR_E2E_OPENROUTER_API_KEY turns the tier 2 half on.
       - name: Acceptance on ${{ matrix.os }}
         env:
-          REMOTE_BUILD: ${{ secrets.REMOTE_BUILD }}
-          SSH: ${{ secrets.SSH }}
+          HETZNER_API: ${{ secrets.HETZNER_API }}
+          HETZNER_SSH: ${{ secrets.HETZNER_SSH }}
           SOKAR_CI_LEG: acc-${{ matrix.os }}
           SOKAR_E2E_OPENROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
           # Here rather than a repository setting, so the model is visible and changes with a commit.
@@ -169,6 +169,6 @@ jobs:
       - name: Delete what this run created
         if: always()
         env:
-          REMOTE_BUILD: ${{ secrets.REMOTE_BUILD }}
+          HETZNER_API: ${{ secrets.HETZNER_API }}
           SOKAR_CI_LEG: acc-${{ matrix.os }}
         run: java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main sweep --mine

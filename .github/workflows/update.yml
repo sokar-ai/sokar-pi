@@ -138,8 +138,8 @@ jobs:
       - name: Acceptance - ubuntu
         if: steps.plan.outputs.proceed == 'yes' && !env.STOP
         env:
-          REMOTE_BUILD: ${{ secrets.REMOTE_BUILD }}
-          SSH: ${{ secrets.SSH }}
+          HETZNER_API: ${{ secrets.HETZNER_API }}
+          HETZNER_SSH: ${{ secrets.HETZNER_SSH }}
           SOKAR_CI_LEG: upd-ubuntu
           SOKAR_E2E_OPENROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
           SOKAR_E2E_MODEL: z-ai/glm-4.6
@@ -153,8 +153,8 @@ jobs:
       - name: Acceptance - fedora
         if: steps.plan.outputs.proceed == 'yes' && !env.STOP
         env:
-          REMOTE_BUILD: ${{ secrets.REMOTE_BUILD }}
-          SSH: ${{ secrets.SSH }}
+          HETZNER_API: ${{ secrets.HETZNER_API }}
+          HETZNER_SSH: ${{ secrets.HETZNER_SSH }}
           SOKAR_CI_LEG: upd-fedora
           SOKAR_E2E_OPENROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
           SOKAR_E2E_MODEL: z-ai/glm-4.6
@@ -168,14 +168,14 @@ jobs:
       - name: Delete what this run created
         if: always() && steps.plan.outputs.proceed == 'yes'
         env:
-          REMOTE_BUILD: ${{ secrets.REMOTE_BUILD }}
+          HETZNER_API: ${{ secrets.HETZNER_API }}
           SOKAR_CI_LEG: upd-ubuntu
         run: java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main sweep --mine || true
 
       - name: Delete what this run created - fedora leg
         if: always() && steps.plan.outputs.proceed == 'yes'
         env:
-          REMOTE_BUILD: ${{ secrets.REMOTE_BUILD }}
+          HETZNER_API: ${{ secrets.HETZNER_API }}
           SOKAR_CI_LEG: upd-fedora
         run: java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main sweep --mine || true
 
