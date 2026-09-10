@@ -1,16 +1,7 @@
-# Builds against the PUBLISHED agent contract. Nothing here checks out the sokar repository,
-# and that is the property worth protecting: if this build ever needs one, the split has been
-# undone without anyone deciding to undo it.
-#
-# The acceptance suite is not here. It needs podman, nftables and a sokar binary, so it belongs
-# to the sokar repository; what this repository can prove on its own is that the adapter
-# compiles against the contract, that its unit tests pass, and that it packages.
+# Builds against the PUBLISHED agent contract.
 name: Build
 
-# A push that only touches documentation builds nothing. Nothing in the build reads a
-# markdown file, and on main a run rents two machines and republishes - which is a lot to
-# spend on a typo. A push that mixes docs and code still builds: the filter is per push,
-# not per file. workflow_dispatch ignores it, so a run can always be forced.
+# A push that only touches documentation builds nothing.
 on:
   push:
     branches: ['**']
@@ -28,14 +19,7 @@ jobs:
 
   build:
     name: Build and unit tests
-    # Pinned, not 'ubuntu-latest'. The binary is a native image and links glibc dynamically, so
-    # it runs only on that release or newer - and 'ubuntu-latest' moves. Built on the OLDEST
-    # glibc it must run against, which keeps it working on every machine Sokar itself runs on.
-    #
-    # 24.04 is no longer a machine Sokar *runs* on - it needs podman 5 and 24.04 ships 4.9.3 for
-    # its whole life - but it is still the right place to compile: an agent binary built here
-    # starts anywhere a newer Sokar does, and one built on 26.04 would not. The acceptance leg
-    # is what runs on a supported release.
+    # Pinned, not 'ubuntu-latest'.
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -47,19 +31,11 @@ jobs:
           distribution: 'graalvm-community'
           cache: 'maven'
 
-      # -s settings.xml declares the snapshot repository the agent contract is resolved from,
-      # and keeps a developer's own ~/.m2/settings.xml out of what makes a build work.
+      # -s settings.xml declares the snapshot repository the agent contract is resolved from, and keeps.
       - name: Build and unit tests
         run: ./mvnw -B -s settings.xml verify
 
-      # The packages are what an operator installs, so a build that has not produced them has
-      # not proved much. Native-image needs the GraalVM set up above.
-      # -Pdist also builds the Pi tree - npm ci and a Node runtime, inside a pinned container.
-      # That is why this build is minutes rather than seconds, and why podman is needed here.
-      # The run number is what makes one snapshot package newer than the last. Without it every
-      # build of main produced the same version, so 'apt upgrade' had nothing to do and a
-      # repository called 'snapshots' never actually updated anybody. Counters are per repository
-      # and deliberately not shared with sokar's own.
+      # The packages are what an operator installs, so a build that has not produced them has not proved.
       - name: Native binary and packages
         run: ./mvnw -B -s settings.xml -Pnative,dist verify -DskipTests
              -Dagent.snapshot.run=${{ github.run_number }}
@@ -72,16 +48,7 @@ jobs:
             target/*.rpm
           if-no-files-found: error
 
-      # Publishing only from main. A pull request builds and packages, which is what says the
-      # change is sound; it must not put an artifact where an operator could install it.
-      #
-      # In this job rather than a separate one: the native build here takes about twenty
-      # seconds, so a second job would cost more in setup than it saves.
-      # A run that builds a correct package and publishes nothing looks exactly like one that
-      # published, because every step below is skipped silently. That cost a full round trip in
-      # sokar-claude-code: a manual re-run resolved the right dependency, built the right
-      # package, threw it away, and the machine under test kept reporting the old version with
-      # nothing anywhere saying why. Said out loud instead.
+      # Publishing only from main.
       - name: Not publishing
         if: "!(github.event_name == 'push' && github.ref == 'refs/heads/main')"
         run: |
@@ -90,9 +57,7 @@ jobs:
           echo "and are attached to this run as artifacts; nothing reached Artifactory, so"
           echo "'apt' will still offer whatever was published last."
 
-      # The action publishes build-info by itself at the end of the workflow. That goes into
-      # 'artifactory-build-info', which this token cannot write, so it warns on every run about
-      # something nobody asked for.
+      # The action publishes build-info by itself at the end of the workflow.
       - uses: jfrog/setup-jfrog-cli@v5
         with:
           disable-auto-build-publish: true
@@ -101,12 +66,7 @@ jobs:
           JF_URL: ${{ vars.JF_URL }}
           JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
 
-      # The same two repositories Sokar itself publishes to. They belong together: this
-      # package declares 'Depends: sokar', so split across repositories an operator would need
-      # both configured for the dependency to resolve.
-      #
-      # The three deb.* properties are what get the package indexed. Without them Artifactory
-      # stores the file and apt never sees it, with no error anywhere.
+      # The same two repositories Sokar itself publishes to.
       - name: Publish the packages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
@@ -114,21 +74,17 @@ jobs:
           JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
         run: |
           set -eux
-          # --flat: without it the source directory travels too, and the package lands at
-          # pool/main/s/sokar-agent-pi/target/... instead of beside its siblings.
+          # --flat, or the source directory travels and the package lands away from its siblings.
           jf rt upload "target/*.deb" "sokar-dist-deb/pool/main/s/sokar-agent-pi/" \
               --flat=true \
               --target-props="deb.distribution=snapshots;deb.component=main;deb.architecture=amd64"
           jf rt upload "target/*.rpm" "sokar-dist-rpm/snapshots/" --flat=true
 
-          # The bill beside the package, readable without installing. It also travels inside
-          # both packages at /usr/share/sokar/sbom.
+          # The bill beside the package, readable without installing.
           jf rt upload "target/sokar-agent-pi.cdx.json" "sokar-dist-deb/pool/main/s/sokar-agent-pi/" --flat=true
           jf rt upload "target/sokar-agent-pi.cdx.json" "sokar-dist-rpm/snapshots/" --flat=true
 
-      # Uploaded is not installable. Indexing is asynchronous, and a package with missing or
-      # wrong properties is stored happily and never listed - invisible until an operator's
-      # apt reports nothing to install.
+      # Uploaded is not installable.
       - name: The package is indexed, not merely stored
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
@@ -150,15 +106,7 @@ jobs:
           echo "::error::sokar-agent-pi never appeared in the index - uploaded but not indexed"
           exit 1
 
-  # The last step, and the only one that installs what an operator installs. Everything above
-  # proves the code is right; this proves the PACKAGE is - on a stock image that has never seen
-  # this project, from the repository, with the signature and the dependency on sokar both
-  # resolved the way a user resolves them.
-  #
-  # Both distributions, because the two differ in ways that have already bitten: podman 4 on
-  # 26.04 and Fedora 44, which differ in package format and security module.
-  #
-  # Only on main, and only after the packages are published - it installs them.
+  # The last step, and the only one that installs what an operator installs.
   acceptance:
     name: Acceptance - ${{ matrix.os }}
     runs-on: ubuntu-24.04
@@ -167,9 +115,7 @@ jobs:
 
     strategy:
       fail-fast: false
-      # One at a time. Three repositories rent machines from one Hetzner project and nothing
-      # coordinates them; running both legs at once doubles this repository's share of a limit
-      # it does not own. Each leg is minutes, so the cost is small and the collisions are not.
+      # One at a time.
       max-parallel: 1
       matrix:
         os: [ubuntu, fedora]
@@ -180,8 +126,7 @@ jobs:
       - name: Install the Hetzner client
         run: pip install --quiet hcloud
 
-      # For the Cucumber half, which runs on this runner against the rented machine and needs
-      # the JDK the enforcer insists on. The scripted half needs nothing here.
+      # For the Cucumber half, which runs on this runner against the rented machine and needs the JDK.
       - name: Set up Java
         uses: graalvm/setup-graalvm@v1
         with:
@@ -189,49 +134,22 @@ jobs:
           distribution: 'graalvm-community'
           cache: 'maven'
 
-      # Before anything is created, so the cleanup below can always run: that step is
-      # 'if: always()', and a job that died before this was resolved would have nothing to run
-      # and a machine billing until the hourly sweep noticed.
+      # Before anything is created, so the cleanup below always has something to run.
       - name: Resolve the machine tooling
         run: |
-          # settings.xml already sets updatePolicy 'always' for snapshots, so this is as
-          # fresh as the repository is. What it cannot fix is order: this repository's CI needs
-          # a snapshot that Sokar's own build publishes, so a leg started before that build
-          # finished resolves the previous one - measured at eleven minutes on 2026-09-10, and
-          # it failed with the usage text of tooling that predated the command asked of it.
           ./mvnw -B -q -Pci-tools -s settings.xml dependency:build-classpath \
               -Dmdep.outputFile=target/cp.txt
 
-      # SOKAR_E2E_OPENROUTER_API_KEY turns the tier 2 half on. Without it the run still checks
-      # that the packages install and that sokar finds the agent, and exits 0 - so a fork or a
-      # revoked key degrades to less coverage rather than to a red build with no information.
+      # SOKAR_E2E_OPENROUTER_API_KEY turns the tier 2 half on.
       - name: Acceptance on ${{ matrix.os }}
         env:
           REMOTE_BUILD: ${{ secrets.REMOTE_BUILD }}
           SSH: ${{ secrets.SSH }}
           SOKAR_CI_LEG: acc-${{ matrix.os }}
           SOKAR_E2E_OPENROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
-          # This agent's model, set here rather than in a repository setting so it is visible,
-          # reviewable and changes with a commit. What is measured is that the credential was
-          # accepted, so it only has to be cheap and able to follow one instruction.
-          #
-          # Chosen by measurement: a ':free' variant returns rate_limit_exceeded. Pi speaks
-          # whatever its provider speaks rather than a fixed format, so this reaches
-          # OpenRouter's OpenAI-compatible dialect; the model id is the same either way.
+          # Here rather than a repository setting, so the model is visible and changes with a commit.
           SOKAR_E2E_MODEL: z-ai/glm-5.3-flash
-        # '--cucumber' adds the suite in src/acceptance, run from this runner as a person at a
-        # terminal, with failures as annotations on the feature file and the run as a job summary.
-        # Unconditional. It waited behind the repository variable SOKAR_ACCEPTANCE_KIT only until
-        # sokar-acceptance-kit reached Central - before that every push to main would have gone red
-        # on a dependency rather than on anything about this agent. The kit is published, so the
-        # condition is met and the switch is gone rather than merely set: a switch whose off state
-        # is silent is the fault this project keeps finding, and an unset variable here ran no
-        # scenarios and reported success. The script now refuses a run that produced none, which is
-        # the guarantee the variable never gave.
-        #
-        # The scripted half keeps running beside it until the suite has been green here for real -
-        # two sources for one fact is a trap, and so is deleting the one that works before the
-        # other has ever run.
+        # '--cucumber' adds the suite in src/acceptance, run from this runner as a person at a terminal,.
         run: |
           java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main acceptance \
               --os ${{ matrix.os }} --package sokar-agent-pi \
