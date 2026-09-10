@@ -189,6 +189,14 @@ jobs:
           distribution: 'graalvm-community'
           cache: 'maven'
 
+      # Before anything is created, so the cleanup below can always run: that step is
+      # 'if: always()', and a job that died before this was resolved would have nothing to run
+      # and a machine billing until the hourly sweep noticed.
+      - name: Resolve the machine tooling
+        run: |
+          ./mvnw -B -q -Pci-tools -s settings.xml dependency:build-classpath \
+              -Dmdep.outputFile=target/cp.txt
+
       # SOKAR_E2E_OPENROUTER_API_KEY turns the tier 2 half on. Without it the run still checks
       # that the packages install and that sokar finds the agent, and exits 0 - so a fork or a
       # revoked key degrades to less coverage rather than to a red build with no information.
@@ -219,14 +227,14 @@ jobs:
         # The scripted half keeps running beside it until the suite has been green here for real -
         # two sources for one fact is a trap, and so is deleting the one that works before the
         # other has ever run.
-        run: python3 buildtools/ci/remote-acceptance.py --os ${{ matrix.os }} --cucumber
+        run: |
+          java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main acceptance \
+              --os ${{ matrix.os }} --package sokar-agent-pi \
+              --script buildtools/acceptance.sh --cucumber .
 
       - name: Delete what this run created
         if: always()
         env:
           REMOTE_BUILD: ${{ secrets.REMOTE_BUILD }}
           SOKAR_CI_LEG: acc-${{ matrix.os }}
-        run: |
-          ./mvnw -B -q -Pci-tools -s settings.xml dependency:build-classpath \
-              -Dmdep.outputFile=target/cp.txt
-          java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main sweep --mine
+        run: java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main sweep --mine

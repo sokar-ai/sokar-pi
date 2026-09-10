@@ -93,7 +93,7 @@ operator installs. Everything before it proves the code is right; this proves th
 never a prepared snapshot - so it exercises the package repository itself: the
 signature, the index, and `Depends: sokar` resolving from the same place.
 
-`buildtools/ci/remote-acceptance.py` provisions the machine, installs from Artifactory
+`org.fuin.sokar.machines.Main acceptance` provisions the machine, installs from Artifactory
 the way [the README](README.md#install) says, creates an unprivileged user (a task runs
 rootless, so running the suite as root would prove less), runs the suite and destroys the
 server in a `finally`. A `cpx12` is enough - one core and 2 GB, because this installs
@@ -135,7 +135,8 @@ Run it by hand with `workflow_dispatch`, or locally:
 
 ```
 REMOTE_BUILD=... SSH="$(cat key)" SOKAR_E2E_OPENROUTER_API_KEY=... \
-  python3 buildtools/ci/remote-acceptance.py --os fedora
+  java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main acceptance \
+      --os fedora --package sokar-agent-pi --script buildtools/acceptance.sh
 ```
 
 ## What this repository still cannot check
