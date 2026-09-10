@@ -458,6 +458,20 @@
              machine, and a unit test that cannot run without one would make 'mvn test' mean
              something different here than everywhere else. -->
 
+        <!-- The machine tooling, for the workflow step that deletes what a run created. Its
+             own profile so an ordinary build neither downloads it nor puts it on a classpath:
+             nothing in this module compiles against it, and CI asks for it by name. -->
+
+        <profile>
+            <id>ci-tools</id>
+            <dependencies>
+                <dependency>
+                    <groupId>org.fuin.sokar</groupId>
+                    <artifactId>sokar-machines</artifactId>
+                </dependency>
+            </dependencies>
+        </profile>
+
         <profile>
             <id>acceptance</id>
             <activation>

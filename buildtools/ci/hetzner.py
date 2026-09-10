@@ -4,8 +4,9 @@ Shared pieces for driving the Hetzner Cloud test servers.
 The one thing worth reading before anything else: **a server that is not destroyed costs
 81 EUR a month**, against 3 cents for the fifteen minutes it is meant to live. So destruction is
 structural here rather than a step at the end - `provisioned()` is a context manager that deletes
-in a `finally`, and `sweep()` exists because a process killed between two statements cannot clean
-up after itself.
+in a `finally`. The net under that - deleting what a killed process could not - is
+`org.fuin.sokar.machines.Main sweep`, in Java, because a copy of it per repository is how four
+copies of this file came to disagree.
 
 Everything is labelled `sokar=ci` so the sweep can find it without a list of names to keep in
 step with reality.
@@ -333,7 +334,7 @@ def create_when_there_is_room(hcloud_client: Client, *, name: str, server_type: 
                 raise SystemExit(
                     f"the project was still at its server limit after "
                     f"{LIMIT_ATTEMPTS * LIMIT_WAIT_SECONDS // 60} minutes. Another run is "
-                    f"holding machines, or something leaked one: check with sweep.py --list")
+                    f"holding machines, or something leaked one: check with the sweep")
             print(f"  at the project's server limit, waiting {LIMIT_WAIT_SECONDS}s "
                   f"({attempt}/{LIMIT_ATTEMPTS})")
             time.sleep(LIMIT_WAIT_SECONDS)
@@ -375,7 +376,10 @@ def provisioned(hcloud_client: Client, *, name: str, server_type: str, image_nam
     finally:
         if keep:
             print(f"KEEPING {name} at {address} - it is costing money until you run:")
-            print(f"    python3 buildtools/ci/sweep.py --now")
+            print(f"    mvnw -Pci-tools dependency:build-classpath "
+                  f"-Dmdep.outputFile=target/cp.txt && "
+                  f"java -cp \"$(cat target/cp.txt)\" "
+                  f"org.fuin.sokar.machines.Main sweep --now")
         else:
             print(f"deleting {name}")
             try:
@@ -432,52 +436,3 @@ def ssh(address: str, environment: dict[str, str], command: str, *, check: bool 
     return (result.stdout + result.stderr).strip()
 
 
-def delete_mine(hcloud_client: Client) -> int:
-    """
-    Deletes the servers this run created, and nothing else.
-
-    Separate from {@link sweep} on purpose. Deleting by age catches another run's server when that
-    run is slow, and the symptom - ssh dying part way through a build - is close to undebuggable.
-    A run should only ever remove what it made; everything else belongs to the scheduled sweep.
-
-    :return: How many were deleted.
-    """
-    selector = f"{LABEL_SELECTOR},{RUN_LABEL}={run_id()}"
-    deleted = 0
-    for server in hcloud_client.servers.get_all(label_selector=selector):
-        print(f"deleting {server.name}, made by this run")
-        hcloud_client.servers.delete(server).wait_until_finished()
-        deleted += 1
-    if deleted == 0:
-        print("this run left nothing behind")
-    return deleted
-
-
-def sweep(hcloud_client: Client, *, older_than: timedelta, dry_run: bool = True) -> int:
-    """
-    Deletes servers left behind by a run that could not clean up after itself.
-
-    Age rather than state: a server doing useful work is younger than an hour, and one older than
-    that is either forgotten or a run so slow it should be looked at anyway.
-
-    This is for the scheduled sweep, not for a job cleaning up after itself - use
-    {@link delete_mine} for that. Running this at the end of a job deletes whatever another job
-    happens to have running.
-
-    :return: How many were deleted, or would have been.
-    """
-    cutoff = datetime.now(timezone.utc) - older_than
-    deleted = 0
-    for server in hcloud_client.servers.get_all(label_selector=LABEL_SELECTOR):
-        if server.created > cutoff:
-            print(f"keeping {server.name}, created {server.created.isoformat()}")
-            continue
-        deleted += 1
-        if dry_run:
-            print(f"WOULD DELETE {server.name}, created {server.created.isoformat()}")
-        else:
-            print(f"deleting {server.name}, created {server.created.isoformat()}")
-            hcloud_client.servers.delete(server).wait_until_finished()
-    if deleted == 0:
-        print("nothing to sweep")
-    return deleted

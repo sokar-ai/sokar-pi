@@ -226,4 +226,7 @@ jobs:
         env:
           REMOTE_BUILD: ${{ secrets.REMOTE_BUILD }}
           SOKAR_CI_LEG: acc-${{ matrix.os }}
-        run: python3 buildtools/ci/sweep.py --mine
+        run: |
+          ./mvnw -B -q -Pci-tools -s settings.xml dependency:build-classpath \
+              -Dmdep.outputFile=target/cp.txt
+          java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main sweep --mine
