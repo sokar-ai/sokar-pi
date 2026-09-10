@@ -9,8 +9,13 @@ CHANGELOG.md has to be in that range too.
 
     check-changelog.py <base> <head>
 
-Documentation and editor settings are exempt, because a typo fix is not a notable change and
-requiring an entry for one teaches people to write entries that say nothing.
+Editor settings and the licence are exempt, because nothing about them can be notable.
+Documentation is NOT exempt. It was, by extension, and that was the wrong instrument: a typo in
+a build note and a rewrite of the setup guide are both `*.md` and no diff can tell them apart -
+which is the judgement this script already hands to a person. A documentation change that is
+merely a typo says [no changelog] like any other change that ships nothing observable, so the
+typo case is answered without a rule that guesses. It also does not survive being copied to a
+repository whose documentation is the operator's surface rather than a build note.
 
 A change that ships nothing observable - a comment, a rename, a workflow tidy - says
 [no changelog] in a commit message and passes. Nothing can tell a comment from a behavior
@@ -37,9 +42,10 @@ from fnmatch import fnmatch
 
 CHANGELOG = "CHANGELOG.md"
 
-# Changing one of these needs no entry. Everything else does - including the build files and
-# the workflows, which decide what an operator receives just as much as the source does.
-EXEMPT = ("*.md", ".gitignore", ".idea/*", "LICENSE")
+# Changing one of these needs no entry. Everything else does - including the build files, the
+# workflows and the documentation, which decide what an operator receives and what they are told
+# just as much as the source does.
+EXEMPT = (".gitignore", ".idea/*", "LICENSE")
 
 EMPTY = "0" * 40
 
@@ -116,10 +122,11 @@ def main() -> int:
 
     needing = [f for f in files if not any(fnmatch(f, pattern) for pattern in EXEMPT)]
     if not needing:
-        print(f"only documentation and settings changed, so {CHANGELOG} is not required")
+        print(f"only settings changed, so {CHANGELOG} is not required")
         return 0
 
-    print(f"::error::{CHANGELOG} was not updated, but this change touches what ships:")
+    print(f"::error::{CHANGELOG} was not updated, but this change touches what ships or what an"
+          " operator is told:")
     for f in needing:
         print(f"  {f}")
     print()
