@@ -194,7 +194,12 @@ jobs:
       # and a machine billing until the hourly sweep noticed.
       - name: Resolve the machine tooling
         run: |
-          ./mvnw -B -q -Pci-tools -s settings.xml dependency:build-classpath \
+          # -U because this resolves a snapshot that moves several times a day. Maven's
+          # default is to refresh a snapshot once a day, and the runner restores ~/.m2 from a
+          # cache - so without it a leg runs against whatever the tooling looked like yesterday.
+          # Measured: a leg failed with the usage text of a build that predated the command it
+          # was being asked for.
+          ./mvnw -B -q -U -Pci-tools -s settings.xml dependency:build-classpath \
               -Dmdep.outputFile=target/cp.txt
 
       # SOKAR_E2E_OPENROUTER_API_KEY turns the tier 2 half on. Without it the run still checks
