@@ -24,6 +24,7 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ### Fixed
 
+- The changelog check reads the waiver after fetching the base commit, not before; in a shallow clone it missed `[no changelog]` and failed the build anyway.
 - The changelog check no longer exempts documentation; a typo says `[no changelog]` like any other change that ships nothing observable.
 - The acceptance suite refuses a run as root, rather than passing every check but the one that needs the broker.
 

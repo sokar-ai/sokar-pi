@@ -72,6 +72,45 @@ def fetch(commit: str) -> None:
                    capture_output=True, text=True)
 
 
+def present(base: str, head: str) -> None:
+    """
+    Makes sure both commits are in this clone, before anything tries to read them.
+
+    This has to happen before the waiver is looked for, not after. CI checks out with depth 1,
+    so the commit a push came FROM is absent, and `git log base..head` then fails silently with
+    empty output - which reads exactly like "no waiver in any message" and fails a build whose
+    author wrote one. Measured on 2026-09-10: two agent repositories went red on a commit that
+    carried the marker, while a third with the same marker passed, because its base happened to
+    be present.
+
+    :param base: What to compare from.
+    :param head: What to compare to.
+    """
+    for commit in (base, head):
+        if not here(commit):
+            fetch(commit)
+
+
+def waived(base: str, head: str) -> bool:
+    """
+    Whether any commit message in the range carries the waiver.
+
+    Falls back to the tip's own message when the range will not resolve. A range needs a
+    connected history and a two-commit diff does not, which is the same trap changed() avoids -
+    and a force push or an orphan branch is enough to hit it.
+
+    :param base: What to compare from.
+    :param head: What to compare to.
+    :return: Whether a waiver was found.
+    """
+    out = subprocess.run(["git", "log", "--format=%B", f"{base}..{head}"],
+                         capture_output=True, text=True)
+    if out.returncode != 0:
+        out = subprocess.run(["git", "log", "-1", "--format=%B", head],
+                             capture_output=True, text=True)
+    return WAIVER in out.stdout
+
+
 def changed(base: str, head: str) -> list[str]:
     """
     Lists the files that differ between two commits.
@@ -105,9 +144,9 @@ def main() -> int:
               f"checked. This is not the same as 'it was updated'.")
         return 0
 
-    waived = subprocess.run(["git", "log", "--format=%B", f"{base}..{head}"],
-                            capture_output=True, text=True)
-    if WAIVER in waived.stdout:
+    present(base, head)
+
+    if waived(base, head):
         print(f"a commit message says {WAIVER}, so no entry is required")
         return 0
 
