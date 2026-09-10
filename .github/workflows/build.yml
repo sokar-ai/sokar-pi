@@ -194,12 +194,12 @@ jobs:
       # and a machine billing until the hourly sweep noticed.
       - name: Resolve the machine tooling
         run: |
-          # -U because this resolves a snapshot that moves several times a day. Maven's
-          # default is to refresh a snapshot once a day, and the runner restores ~/.m2 from a
-          # cache - so without it a leg runs against whatever the tooling looked like yesterday.
-          # Measured: a leg failed with the usage text of a build that predated the command it
-          # was being asked for.
-          ./mvnw -B -q -U -Pci-tools -s settings.xml dependency:build-classpath \
+          # settings.xml already sets updatePolicy 'always' for snapshots, so this is as
+          # fresh as the repository is. What it cannot fix is order: this repository's CI needs
+          # a snapshot that Sokar's own build publishes, so a leg started before that build
+          # finished resolves the previous one - measured at eleven minutes on 2026-09-10, and
+          # it failed with the usage text of tooling that predated the command asked of it.
+          ./mvnw -B -q -Pci-tools -s settings.xml dependency:build-classpath \
               -Dmdep.outputFile=target/cp.txt
 
       # SOKAR_E2E_OPENROUTER_API_KEY turns the tier 2 half on. Without it the run still checks
