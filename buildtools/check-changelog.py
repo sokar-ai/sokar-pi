@@ -17,6 +17,11 @@ merely a typo says [no changelog] like any other change that ships nothing obser
 typo case is answered without a rule that guesses. It also does not survive being copied to a
 repository whose documentation is the operator's surface rather than a build note.
 
+Touching CHANGELOG.md is not the same as saying what changed, so the file has to gain an
+entry - a bullet, or a version heading. The commit that moved these repositories to the
+sokar-ai organisation satisfied the older check by rewriting a github.com URL in the
+`[Unreleased]:` link line, while touching everything that ships.
+
 A change that ships nothing observable - a comment, a rename, a workflow tidy - says
 [no changelog] in a commit message and passes. Nothing can tell a comment from a behavior
 change by looking at a diff, so the judgement is a person's; the marker makes it one somebody
@@ -36,6 +41,7 @@ the ordinary case, not a wall.
 """
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 from fnmatch import fnmatch
@@ -51,6 +57,9 @@ EMPTY = "0" * 40
 
 # What a person writes when a change ships nothing an operator could observe.
 WAIVER = "[no changelog]"
+
+# A version heading, which is what a release adds rather than a bullet.
+HEADING = re.compile(r"^#+ +\[?\d")
 
 
 def here(commit: str) -> bool:
@@ -111,6 +120,32 @@ def waived(base: str, head: str) -> bool:
     return WAIVER in out.stdout
 
 
+def entry_added(base: str, head: str) -> bool:
+    """
+    Whether the change adds a line a reader of the changelog would see.
+
+    An entry is a `- ` bullet, or a version heading when a release adds one. A link definition
+    is neither, and it is the line that made the older check answer the wrong question: the
+    commit moving these repositories to the sokar-ai organisation passed while touching
+    everything that ships, because `[Unreleased]:` held a github.com URL and was rewritten with
+    the rest. Every release, every link rewrite and every typo fix in this file opened the same
+    hole for whatever rode along with it.
+
+    :param base: What to compare from.
+    :param head: What to compare to.
+    :return: Whether an entry was added.
+    """
+    out = subprocess.run(["git", "diff", "--unified=0", base, head, "--", CHANGELOG],
+                         capture_output=True, text=True)
+    for line in out.stdout.splitlines():
+        if not line.startswith("+") or line.startswith("+++"):
+            continue
+        body = line[1:].strip()
+        if body.startswith("- ") or HEADING.match(body):
+            return True
+    return False
+
+
 def changed(base: str, head: str) -> list[str]:
     """
     Lists the files that differ between two commits.
@@ -155,16 +190,18 @@ def main() -> int:
         print("nothing changed in this range")
         return 0
 
-    if CHANGELOG in files:
-        print(f"{CHANGELOG} is in this change")
-        return 0
-
-    needing = [f for f in files if not any(fnmatch(f, pattern) for pattern in EXEMPT)]
+    needing = [f for f in files
+               if f != CHANGELOG and not any(fnmatch(f, pattern) for pattern in EXEMPT)]
     if not needing:
-        print(f"only settings changed, so {CHANGELOG} is not required")
+        print(f"nothing that ships changed, so {CHANGELOG} is not required")
         return 0
 
-    print(f"::error::{CHANGELOG} was not updated, but this change touches what ships or what an"
+    if CHANGELOG in files and entry_added(base, head):
+        print(f"{CHANGELOG} gains an entry in this change")
+        return 0
+
+    why = ("changed without gaining an entry" if CHANGELOG in files else "was not updated")
+    print(f"::error::{CHANGELOG} {why}, but this change touches what ships or what an"
           " operator is told:")
     for f in needing:
         print(f"  {f}")
