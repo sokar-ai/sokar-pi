@@ -28,4 +28,4 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 - The changelog check no longer exempts documentation; a typo says `[no changelog]` like any other change that ships nothing observable.
 - The acceptance suite refuses a run as root, rather than passing every check but the one that needs the broker.
 
-[Unreleased]: https://github.com/fuinorg/sokar-pi/commits/main
+[Unreleased]: https://github.com/sokar-ai/sokar-pi/commits/main

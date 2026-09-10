@@ -19,19 +19,19 @@
     <name>Sokar Agent Pi</name>
     <description>Sokar agent for Pi</description>
 
-    <url>https://github.com/fuinorg/sokar-pi/</url>
+    <url>https://github.com/sokar-ai/sokar-pi/</url>
 
     <scm child.scm.url.inherit.append.path="false"
          child.scm.connection.inherit.append.path="false"
          child.scm.developerConnection.inherit.append.path="false">
-        <url>https://github.com/fuinorg/sokar-pi/</url>
-        <connection>scm:git:git://github.com/fuinorg/sokar-pi.git</connection>
-        <developerConnection>scm:git:git@github.com:fuinorg/sokar-pi.git</developerConnection>
+        <url>https://github.com/sokar-ai/sokar-pi/</url>
+        <connection>scm:git:git://github.com/sokar-ai/sokar-pi.git</connection>
+        <developerConnection>scm:git:git@github.com:sokar-ai/sokar-pi.git</developerConnection>
     </scm>
 
     <issueManagement>
         <system>GitHub Issues</system>
-        <url>https://github.com/fuinorg/sokar-pi/issues</url>
+        <url>https://github.com/sokar-ai/sokar-pi/issues</url>
     </issueManagement>
 
     <properties>

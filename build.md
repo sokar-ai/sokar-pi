@@ -1,6 +1,6 @@
 # Building
 
-Nothing here needs a checkout of [Sokar](https://github.com/fuinorg/sokar). This
+Nothing here needs a checkout of [Sokar](https://github.com/sokar-ai/sokar). This
 repository compiles against the **published agent contract** - `sokar-agent-api`
 and `sokar-wire` - resolved from Maven, and that is the property worth keeping: if
 a build here ever needs the Sokar sources, the split has been undone without
