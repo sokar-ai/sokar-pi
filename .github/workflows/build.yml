@@ -32,8 +32,19 @@ jobs:
           cache: 'maven'
 
       # -s settings.xml declares the snapshot repository the agent contract is resolved from, and keeps.
+      # A changelog nobody is obliged to write stops being written.
+      - name: The changelog says what changed
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.sha }}
+        run: python3 buildtools/check-changelog.py "$BASE" "$HEAD"
+
       - name: Build and unit tests
         run: ./mvnw -B -s settings.xml verify
+
+      # The definition, the npm manifest and the lockfile must name one version.
+      - name: The pin agrees everywhere it is written
+        run: python3 buildtools/check-pin.py
 
       # The packages are what an operator installs, so a build that has not produced them has not proved.
       - name: Native binary and packages

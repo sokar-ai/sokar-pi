@@ -66,6 +66,48 @@ and SHA-256, at the top of `buildtools/build-pi-tree.sh`.
 `sokar agents --supply-chain` reports what is pinned, so "which version ran" is
 answerable from the installed adapter rather than from a build log.
 
+## The changelog
+
+`CHANGELOG.md`, in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
+**One sentence per change** - it is a compressed summary of the commits it covers, and
+`git log` is where anyone who wants the reasoning goes.
+
+A version bump is not written by hand: `buildtools/update.py` writes its own line and replaces
+the one it wrote last time. Everything else is by hand, and `buildtools/check-changelog.py`
+fails a build that forgot; a change that ships nothing observable says `[no changelog]` in a
+commit message.
+
+## Following Pi without watching it
+
+`.github/workflows/update.yml` runs once a week, on Monday. It asks the npm registry what
+`latest` points at and, if that is not what this module ships, does what a person would:
+`update.py`, rebuild, and prove the result on a real Ubuntu machine and a real Fedora one
+**before anything is published**.
+
+**A Pi bump is four files, not two**, which is what made this agent the awkward one to automate:
+the npm manifest, the regenerated lockfile, the `agent.cli.version` property, and the changelog.
+`update.py` does all four.
+
+**The lockfile is regenerated inside the pinned Node container**, the same one
+`build-pi-tree.sh` installs from, with `npm install --package-lock-only`. A lockfile resolved by
+one npm and installed by another is the thing `npm ci` exists to prevent. The old lockfile goes
+in first, so unrelated dependencies keep the versions they had and the diff is the change that
+was asked for.
+
+**The Node runtime is a different axis and is not touched.** `NODE_VERSION` and `NODE_SHA256`
+pin what the tree is built against and shipped with; moving Pi is not a reason to move Node, and
+doing both at once would make a failure ambiguous.
+
+**The point is the stopping.** The run refuses to publish when an acceptance suite failed, when
+the third-party component set or a license changed, or when the upstream **major** version moved.
+`--expect-moved pi-coding-agent` excuses only the package being updated - **its 165 dependencies
+are not excused, which is the point**: measured, 0.85.1 resolves two packages fewer than 0.85.0,
+and that is exactly the kind of change a person has to look at.
+
+`buildtools/check-pin.py` runs on every push and needs no network: the definition, `package.json`
+and the lockfile must name one version, and the lockfile is the one that decides, because
+`npm ci` installs the lockfile and ignores what the manifest asked for.
+
 ## Publishing
 
 A push to `main` uploads the two packages to Artifactory, into the **same repositories

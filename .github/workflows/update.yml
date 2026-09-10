@@ -1,0 +1,261 @@
+# Follows Pi, so nobody has to.
+name: Update
+
+on:
+  schedule:
+    # Weekly, Monday morning UTC.
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Pin this exact version instead of asking upstream'
+        required: false
+      channel:
+        description: "Which npm dist-tag to follow when no version is given"
+        required: false
+        default: latest
+
+# The permissions this workflow needs, and no more.
+permissions:
+  contents: write
+  pull-requests: write
+
+# Never two at once.
+concurrency:
+  group: update
+  cancel-in-progress: false
+
+jobs:
+
+  update:
+    name: Follow Pi
+    runs-on: ubuntu-24.04
+
+    steps:
+
+      - uses: actions/checkout@v7
+
+      # ------------------------------------------------------------------ detect
+
+      # Through env, never interpolated into the script, so no value can become shell.
+      - name: What does upstream publish
+        id: detect
+        env:
+          CHANNEL: ${{ inputs.channel || 'latest' }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -eu
+          # A dispatch answers for the channel, so 'major' is still measured against what is pinned.
+          if [ -n "${VERSION:-}" ]; then
+              python3 buildtools/upstream-version.py --channel "$CHANNEL" --upstream "$VERSION"
+          else
+              python3 buildtools/upstream-version.py --channel "$CHANNEL"
+          fi
+
+      - name: What this run will do
+        id: plan
+        env:
+          UPDATE: ${{ steps.detect.outputs.update }}
+          UPSTREAM: ${{ steps.detect.outputs.upstream }}
+          PINNED: ${{ steps.detect.outputs.pinned }}
+        run: |
+          set -eu
+          if [ "$UPDATE" = "yes" ]; then
+              echo "target=$UPSTREAM" >> "$GITHUB_OUTPUT"
+              echo "proceed=yes" >> "$GITHUB_OUTPUT"
+              echo "This module pins $PINNED; the target is $UPSTREAM."
+          else
+              echo "proceed=no" >> "$GITHUB_OUTPUT"
+              echo "Pi $PINNED is still what the channel points at."
+              echo "Nothing to do. This is the ordinary outcome of this job."
+          fi
+
+      # ------------------------------------------------------------------ apply
+
+      - name: Pin it
+        if: steps.plan.outputs.proceed == 'yes'
+        env:
+          TARGET: ${{ steps.plan.outputs.target }}
+        run: python3 buildtools/update.py "$TARGET"
+
+      - name: Set up GraalVM
+        if: steps.plan.outputs.proceed == 'yes'
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '25'
+          distribution: 'graalvm-community'
+          cache: 'maven'
+
+      # ------------------------------------------------------------------ verify
+
+      # Gates write STOP rather than failing, so the run can still clean up after itself.
+      - name: Unit tests
+        if: steps.plan.outputs.proceed == 'yes'
+        run: |
+          ./mvnw -B -s settings.xml verify || echo "STOP=the unit suite failed" >> "$GITHUB_ENV"
+
+      # Nothing else enforces that the definition, the manifest and the lockfile agree.
+      - name: The pin agrees everywhere it is written
+        if: steps.plan.outputs.proceed == 'yes' && !env.STOP
+        run: |
+          python3 buildtools/check-pin.py || echo "STOP=the shipped version disagrees somewhere" >> "$GITHUB_ENV"
+
+      - name: Native binary and packages
+        if: steps.plan.outputs.proceed == 'yes' && !env.STOP
+        run: |
+          ./mvnw -B -s settings.xml -Pnative,dist verify -DskipTests \
+              -Dagent.snapshot.run=${{ github.run_number }} \
+              || echo "STOP=the packages did not build" >> "$GITHUB_ENV"
+
+      # The tree's own package carries its version in its purl, so without --expect-moved this
+      # stops every time. Its dependencies are not excused, which is the point.
+      - name: What else changed in the shipped tree
+        if: steps.plan.outputs.proceed == 'yes' && !env.STOP
+        run: |
+          python3 buildtools/compare-bills.py \
+              target/sokar-agent-pi.cdx.json \
+              https://fuinorg.jfrog.io/artifactory/sokar-dist-deb/pool/main/s/sokar-agent-pi/sokar-agent-pi.cdx.json \
+              --expect-moved pi-coding-agent \
+              || echo "STOP=third-party components or licenses changed" >> "$GITHUB_ENV"
+
+      - name: The major version moved
+        if: steps.plan.outputs.proceed == 'yes' && steps.detect.outputs.major == 'moved'
+        env:
+          WAS: ${{ steps.detect.outputs.pinned }}
+          TARGET: ${{ steps.plan.outputs.target }}
+        run: |
+          echo "STOP=the upstream major version moved" >> "$GITHUB_ENV"
+          echo "::warning::$WAS -> $TARGET"
+          echo "A major release changes flags, configuration or an extension API by definition."
+
+      # Before anything is created, so the cleanup below always has something to run.
+      - name: Resolve the machine tooling
+        if: steps.plan.outputs.proceed == 'yes'
+        run: |
+          ./mvnw -B -q -Pci-tools -s settings.xml dependency:build-classpath \
+              -Dmdep.outputFile=target/cp.txt
+
+      - name: Acceptance - ubuntu
+        if: steps.plan.outputs.proceed == 'yes' && !env.STOP
+        env:
+          REMOTE_BUILD: ${{ secrets.REMOTE_BUILD }}
+          SSH: ${{ secrets.SSH }}
+          SOKAR_CI_LEG: upd-ubuntu
+          SOKAR_E2E_OPENROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
+          SOKAR_E2E_MODEL: z-ai/glm-4.6
+          SOKAR_E2E_EXPECT_CLI: ${{ steps.plan.outputs.target }}
+        run: |
+          java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main acceptance \
+              --os ubuntu --package sokar-agent-pi --script buildtools/acceptance.sh \
+              --cucumber . --candidate target \
+              || echo "STOP=acceptance failed on ubuntu" >> "$GITHUB_ENV"
+
+      - name: Acceptance - fedora
+        if: steps.plan.outputs.proceed == 'yes' && !env.STOP
+        env:
+          REMOTE_BUILD: ${{ secrets.REMOTE_BUILD }}
+          SSH: ${{ secrets.SSH }}
+          SOKAR_CI_LEG: upd-fedora
+          SOKAR_E2E_OPENROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
+          SOKAR_E2E_MODEL: z-ai/glm-4.6
+          SOKAR_E2E_EXPECT_CLI: ${{ steps.plan.outputs.target }}
+        run: |
+          java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main acceptance \
+              --os fedora --package sokar-agent-pi --script buildtools/acceptance.sh \
+              --cucumber . --candidate target \
+              || echo "STOP=acceptance failed on fedora" >> "$GITHUB_ENV"
+
+      - name: Delete what this run created
+        if: always() && steps.plan.outputs.proceed == 'yes'
+        env:
+          REMOTE_BUILD: ${{ secrets.REMOTE_BUILD }}
+          SOKAR_CI_LEG: upd-ubuntu
+        run: java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main sweep --mine || true
+
+      - name: Delete what this run created - fedora leg
+        if: always() && steps.plan.outputs.proceed == 'yes'
+        env:
+          REMOTE_BUILD: ${{ secrets.REMOTE_BUILD }}
+          SOKAR_CI_LEG: upd-fedora
+        run: java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main sweep --mine || true
+
+      # ------------------------------------------------------------------ ask, or publish
+
+      - name: Open the pull request
+        id: request
+        if: always() && steps.plan.outputs.proceed == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET: ${{ steps.plan.outputs.target }}
+          WAS: ${{ steps.detect.outputs.pinned }}
+        run: |
+          set -eu
+          git config user.name 'sokar-update'
+          git config user.email 'noreply@fuin.org'
+          if git diff --quiet; then
+              echo "nothing was written - there is no change to propose"
+              exit 0
+          fi
+          BRANCH="update/pi-$TARGET"
+          git checkout -b "$BRANCH"
+          git commit -am "Pin Pi $TARGET"
+          git push --force origin "$BRANCH"
+
+          {
+            echo "\`$WAS\` -> \`$TARGET\`, applied by \`buildtools/update.py\`: the"
+            echo "\`agent.cli.version\` property, the npm manifest, and the lockfile regenerated"
+            echo "by the pinned npm. Everything else naming the version is filtered from the"
+            echo "property and could not drift."
+            echo
+            if [ -n "${STOP:-}" ]; then
+                echo "**This is not ready to publish: $STOP.**"
+                echo "Automation is not allowed to decide this one - see the run log above."
+            else
+                echo "**Green.** Unit suite, the pin check against the published manifest, both"
+                echo "packages, an unchanged third-party component set, and the acceptance suites"
+                echo "on Ubuntu and Fedora against these packages rather than the published ones."
+            fi
+          } > /tmp/body.md
+          # A weekly job reaches the same version twice whenever the first attempt stopped.
+          if gh pr view "$BRANCH" --json number >/dev/null 2>&1; then
+              gh pr comment "$BRANCH" --body-file /tmp/body.md
+              echo "the request for $TARGET was already open - re-verified, and said so on it"
+          else
+              gh pr create --title "Pin Pi $TARGET" --body-file /tmp/body.md \
+                           --head "$BRANCH" --base main
+          fi
+          echo "opened=yes" >> "$GITHUB_OUTPUT"
+
+      # Auto-merge needs its own token: the default one does not trigger a further workflow.
+      - name: Merge, or say why not
+        if: always() && steps.request.outputs.opened == 'yes'
+        env:
+          GH_TOKEN: ${{ secrets.SOKAR_UPDATE_TOKEN || github.token }}
+          AUTO: ${{ vars.SOKAR_UPDATE_AUTO_MERGE }}
+          HAVE_TOKEN: ${{ secrets.SOKAR_UPDATE_TOKEN != '' }}
+          TARGET: ${{ steps.plan.outputs.target }}
+        run: |
+          set -eu
+          if [ -n "${STOP:-}" ]; then
+              echo "Not merging: $STOP."
+              echo "The branch is open for whoever decides it."
+          elif [ "$AUTO" != "true" ]; then
+              echo "Not merging: the repository variable SOKAR_UPDATE_AUTO_MERGE is '${AUTO:-unset}'."
+              echo "Everything passed. Merging the pull request publishes Pi $TARGET."
+              echo "Set the variable to 'true' when these runs have been watched enough."
+          elif [ "$HAVE_TOKEN" != "true" ]; then
+              echo "::error::SOKAR_UPDATE_AUTO_MERGE is on but the secret SOKAR_UPDATE_TOKEN is not set."
+              echo "Merging with the workflow's own token triggers no build, so nothing would be"
+              echo "published and the run would look successful. Refusing to merge."
+              exit 1
+          else
+              gh pr merge --merge --delete-branch "update/pi-$TARGET"
+              echo "Merged. The push to main builds and publishes Pi $TARGET."
+          fi
+
+      # Red means there is something to look at, and only that.
+      - name: Stop
+        if: always() && env.STOP
+        run: |
+          echo "::error::$STOP"
+          exit 1
