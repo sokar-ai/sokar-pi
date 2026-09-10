@@ -9,6 +9,14 @@ CHANGELOG.md has to be in that range too.
 
     check-changelog.py <base> <head>
 
+Full SHAs, never abbreviations, whenever the clone is shallow. `git fetch origin <sha>` refuses
+a short one, so an abbreviated commit can never be brought in, and the check drops to the
+degraded path. Measured in a fresh depth-1 clone: with full SHAs it attributes and answers; with
+abbreviated ones it warns and then exits 2, unable to compare - EXCEPT when the tip carries the
+waiver, where it returns 0 having judged nothing at all. That last case is the silent one and it
+is the reason to type the full SHA. CI passes `github.event.before` in full and never meets any
+of this; a person running it by hand does.
+
 Editor settings and the licence are exempt, because nothing about them can be notable.
 Documentation is NOT exempt. It was, by extension, and that was the wrong instrument: a typo in
 a build note and a rewrite of the setup guide are both `*.md` and no diff can tell them apart -
@@ -140,6 +148,10 @@ def attributable(base: str, head: str) -> list[str] | None:
 def deepened(base: str, head: str) -> list[str] | None:
     """
     Fetches enough history to attribute a push per commit, then lists it.
+
+    An abbreviated SHA cannot be fetched at all, so in a shallow clone it lands here every time -
+    the note at the top of this file states what that costs, where somebody typing a command
+    will read it.
 
     Without this the rule would hold on a laptop and never in CI, where actions/checkout clones
     with depth 1 - the same shape of defect as looking for the waiver before fetching, which
