@@ -163,6 +163,6 @@ suite - typed into the vault at a terminal, never on a command line - and are **
 passed, without them. There is no glue class here: every step is the kit's, which is what keeps
 this repository free of test code that knows about ssh.
 
-In CI the same suite runs from the runner against the rented machine when the repository variable
-`SOKAR_ACCEPTANCE_KIT` is set, beside `buildtools/acceptance.sh` until it has been green there
-for real; see the comment in `.github/workflows/build.yml`.
+In CI the same suite runs from the runner against the rented machine on every push to `main`,
+beside `buildtools/acceptance.sh` until it has been green there for real; see the comment in
+`.github/workflows/build.yml`. A run that produces no scenarios fails rather than passing quietly.

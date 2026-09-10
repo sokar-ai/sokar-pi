@@ -208,14 +208,18 @@ jobs:
           SOKAR_E2E_MODEL: z-ai/glm-5.3-flash
         # '--cucumber' adds the suite in src/acceptance, run from this runner as a person at a
         # terminal, with failures as annotations on the feature file and the run as a job summary.
-        # Switched on by the repository variable SOKAR_ACCEPTANCE_KIT rather than always: the suite
-        # resolves sokar-acceptance-kit from Central, and until that snapshot is published every
-        # push to main would go red on a dependency rather than on anything about this agent. Set
-        # the variable once the kit is there; nothing here changes. The script keeps running beside
-        # it until the suite has been green here for real - two sources for one fact is a trap,
-        # and so is deleting the one that works before the other has ever run.
-        run: python3 buildtools/ci/remote-acceptance.py --os ${{ matrix.os }}
-             ${{ vars.SOKAR_ACCEPTANCE_KIT != '' && '--cucumber' || '' }}
+        # Unconditional. It waited behind the repository variable SOKAR_ACCEPTANCE_KIT only until
+        # sokar-acceptance-kit reached Central - before that every push to main would have gone red
+        # on a dependency rather than on anything about this agent. The kit is published, so the
+        # condition is met and the switch is gone rather than merely set: a switch whose off state
+        # is silent is the fault this project keeps finding, and an unset variable here ran no
+        # scenarios and reported success. The script now refuses a run that produced none, which is
+        # the guarantee the variable never gave.
+        #
+        # The scripted half keeps running beside it until the suite has been green here for real -
+        # two sources for one fact is a trap, and so is deleting the one that works before the
+        # other has ever run.
+        run: python3 buildtools/ci/remote-acceptance.py --os ${{ matrix.os }} --cucumber
 
       - name: Delete what this run created
         if: always()
