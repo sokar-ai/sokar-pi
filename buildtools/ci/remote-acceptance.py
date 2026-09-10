@@ -19,6 +19,7 @@ import argparse
 import os
 import subprocess
 import sys
+from xml.etree import ElementTree
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -154,6 +155,27 @@ def cucumber(address: str, key_file: str | None) -> None:
         cwd=repo, env={**os.environ, "SOKAR_ACCEPTANCE_KEY": material})
     if result.returncode != 0:
         raise SystemExit(result.returncode)
+    proved(repo / "target" / "failsafe-reports")
+
+
+def proved(reports: Path) -> None:
+    """
+    Fails when the suite produced no results at all.
+
+    A suite that selects nothing passes, and a run page with no acceptance section looks exactly
+    like one where the suite was never switched on. Sokar's own repository sat in that state for
+    several merges after a module split left the suite out of the reactor, and nothing said so.
+    Here the same silence would mean an unresolved kit, a profile that did not activate, or no
+    integration test found - all of which are worth a red build rather than a quiet green one.
+
+    :param reports: Where failsafe writes its XML.
+    """
+    total = 0
+    for report in sorted(reports.glob("TEST-*.xml")):
+        total += int(ElementTree.parse(report).getroot().get("tests", "0"))
+    if total == 0:
+        raise SystemExit(f"::error::the acceptance suite ran no scenarios - nothing in {reports}. "
+                         "Check that the kit resolved and that the acceptance profile activated.")
 
 
 def shell_quote(value: str) -> str:
