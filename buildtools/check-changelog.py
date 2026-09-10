@@ -27,6 +27,12 @@ A change that ships nothing observable - a comment, a rename, a workflow tidy - 
 change by looking at a diff, so the judgement is a person's; the marker makes it one somebody
 made on purpose, in the log, rather than a rule quietly bent.
 
+The marker answers for the commit it was written on and for nothing travelling with it. It used
+to be looked for across the whole push, so a docstring-only tip saying [no changelog] excused
+the two code commits under it - measured on this repository's own push of 2026-09-10. One entry
+may still cover ten commits: this decides which commits ask the question, not how many entries
+answer it, because a rule of one entry per commit produces the entries that say nothing.
+
 Exit codes:
 
     0   the changelog was updated, or nothing needed it
@@ -100,24 +106,75 @@ def present(base: str, head: str) -> None:
             fetch(commit)
 
 
-def waived(base: str, head: str) -> bool:
+def message(commit: str) -> str:
     """
-    Whether any commit message in the range carries the waiver.
+    Returns one commit's own message.
 
-    Falls back to the tip's own message when the range will not resolve. A range needs a
-    connected history and a two-commit diff does not, which is the same trap changed() avoids -
-    and a force push or an orphan branch is enough to hit it.
+    :param commit: What to read.
+    :return: The full message, empty when it cannot be read.
+    """
+    return subprocess.run(["git", "log", "-1", "--format=%B", commit],
+                          capture_output=True, text=True).stdout
+
+
+def attributable(base: str, head: str) -> list[str] | None:
+    """
+    Lists the commits of a push when each can be diffed against its own parent.
+
+    Both conditions are checked rather than assumed: the range has to resolve, and every commit
+    in it needs its parent here. In a shallow clone `git show` treats a boundary commit as a
+    root and names every file in the tree, which would demand an entry for a push that changed
+    one line - a check failing for its own reasons, which is worse than no check.
 
     :param base: What to compare from.
     :param head: What to compare to.
-    :return: Whether a waiver was found.
+    :return: The commits, newest first, or {@code None} when nothing can be attributed.
     """
-    out = subprocess.run(["git", "log", "--format=%B", f"{base}..{head}"],
-                         capture_output=True, text=True)
+    out = subprocess.run(["git", "rev-list", f"{base}..{head}"], capture_output=True, text=True)
     if out.returncode != 0:
-        out = subprocess.run(["git", "log", "-1", "--format=%B", head],
+        return None
+    commits = out.stdout.split()
+    return commits if all(here(f"{commit}^") for commit in commits) else None
+
+
+def deepened(base: str, head: str) -> list[str] | None:
+    """
+    Fetches enough history to attribute a push per commit, then lists it.
+
+    Without this the rule would hold on a laptop and never in CI, where actions/checkout clones
+    with depth 1 - the same shape of defect as looking for the waiver before fetching, which
+    cost two publishes on 2026-09-10. Fifty is a bound rather than a measurement: a larger push
+    degrades to judging the range together, and says so.
+
+    :param base: What to compare from.
+    :param head: What to compare to.
+    :return: The commits, or {@code None} when the history is still too shallow.
+    """
+    commits = attributable(base, head)
+    if commits is not None:
+        return commits
+    subprocess.run(["git", "fetch", "--no-tags", "--depth=50", "origin", head],
+                   capture_output=True, text=True)
+    return attributable(base, head)
+
+
+def touched(commits: list[str]) -> list[str]:
+    """
+    Lists the files those commits change, each against its own parent.
+
+    Two-commit diffs, never `git show`, for the reason attributable() states. A merge commit
+    reports nothing, as it does to any name-only diff; these repositories push linear history,
+    and a rule that guessed at merges would be a rule nobody had watched fail.
+
+    :param commits: What to look at.
+    :return: Repository-relative paths, without duplicates.
+    """
+    files: set[str] = set()
+    for commit in commits:
+        out = subprocess.run(["git", "diff", "--name-only", f"{commit}^", commit],
                              capture_output=True, text=True)
-    return WAIVER in out.stdout
+        files.update(line for line in out.stdout.splitlines() if line)
+    return sorted(files)
 
 
 def entry_added(base: str, head: str) -> bool:
@@ -192,11 +249,24 @@ def main() -> int:
 
     present(base, head)
 
-    if waived(base, head):
-        print(f"a commit message says {WAIVER}, so no entry is required")
-        return 0
+    commits = deepened(base, head)
 
-    files = changed(base, head)
+    if commits is None:
+        # Nothing can be attributed, so this degrades to the older, weaker rule - out loud,
+        # because a fallback that changes what a gate means without saying so is not a gate.
+        print("::warning::the commits between base and head are not in this clone, so the whole "
+              "range is judged together and a waiver anywhere in it counts")
+        if WAIVER in message(head):
+            print(f"the tip says {WAIVER}, so no entry is required")
+            return 0
+        files = changed(base, head)
+    else:
+        asking = [commit for commit in commits if WAIVER not in message(commit)]
+        if not asking:
+            print(f"every commit here says {WAIVER}, so no entry is required")
+            return 0
+        files = touched(asking)
+
     if not files:
         print("nothing changed in this range")
         return 0
