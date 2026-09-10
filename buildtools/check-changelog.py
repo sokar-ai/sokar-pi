@@ -131,6 +131,17 @@ def entry_added(base: str, head: str) -> bool:
     the rest. Every release, every link rewrite and every typo fix in this file opened the same
     hole for whatever rode along with it.
 
+    THIS RESTS ON update.py WRITING A BULLET. An automated version bump passes because the line
+    it writes starts with `- `; an edit there that changed the shape would take this gate with
+    it silently, so the two belong in one thought.
+
+    TWO THINGS IT DELIBERATELY DOES NOT CATCH. Editing an existing bullet - fixing a typo inside
+    an entry - shows an added line and passes while saying nothing new. And a change that deletes
+    an entry passes if it adds one anywhere else. Both are left because policing them needs a
+    parser that understands a release moving entries under a version heading, and this is a
+    reminder for the ordinary case rather than a wall - the same limit the note above states
+    about a first push.
+
     :param base: What to compare from.
     :param head: What to compare to.
     :return: Whether an entry was added.
