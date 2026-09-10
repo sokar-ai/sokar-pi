@@ -34,7 +34,7 @@ Feature: A task authenticates without ever holding the credential
   Scenario: the credential is not recoverable from the vault file
     Given the vault is unlocked with the passphrase "sokar-acceptance-passphrase"
     And the vault holds the value of "SOKAR_E2E_OPENROUTER_API_KEY" as "openrouter" of kind "api-key"
-    When a script runs "cat ~/.local/share/sokar/vault.bin"
+    When the vault file is read as it lies on disk
     Then it exits zero
     And its output does not contain the value of "SOKAR_E2E_OPENROUTER_API_KEY"
 
