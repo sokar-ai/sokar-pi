@@ -28,6 +28,14 @@ fail() { printf '  \033[31mFAIL\033[0m  %s\n' "$1"; FAILURES=$((FAILURES + 1)); 
 info() { printf '        %s\n' "$1"; }
 skip() { printf '  \033[33mSKIP\033[0m  %s\n' "$1"; }
 
+# Rootless podman and one operator's own directories are what a task actually runs in, so a run
+# as root proves something else and says so nowhere: it passed every check here but the one that
+# needs the broker, for two days, because the leg connected as root and nothing objected.
+if [ "$(id -u)" = 0 ]; then
+    fail "this suite must run as an unprivileged user, not as root"
+    echo; echo "== 1 check(s) failed =="; exit 1
+fi
+
 WORK="$(mktemp -d)"
 PROJECT="acceptance-$$"
 CONTAINER=""
