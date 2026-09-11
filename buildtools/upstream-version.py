@@ -10,7 +10,8 @@ have to know which:
 
     pinned=0.85.0        what this module ships today
     upstream=0.85.1      what the registry calls latest
-    update=yes           whether those differ
+    update=yes           'yes' when newer, 'no' when the same, 'rollback' when older
+    source=dist-tag latest  which pointer 'upstream' was read from
     major=same           'moved' when the major version changed, which nothing may decide alone
 
 The same lines are appended to $GITHUB_OUTPUT when it is set.
@@ -53,7 +54,10 @@ def pinned() -> str:
                       POM.read_text(encoding="utf-8"))
     if not found:
         unanswerable(f"{POM} declares no agent.cli.version")
-    return found.group(1).strip()
+    version = found.group(1).strip()
+    if not VERSION.match(version):
+        unanswerable(f"{POM} pins {version!r}, which is not a version")
+    return version
 
 
 def upstream(tag: str) -> str:
@@ -88,6 +92,40 @@ def unanswerable(reason: str):
     sys.exit(2)
 
 
+def order(version: str) -> tuple[int, ...]:
+    """
+    Returns a version as something that sorts the way versions do.
+
+    As text, 2.1.9 sorts after 2.1.10, and a gate that calls a legitimate update a rollback gets
+    switched off. VERSION has already refused anything but three numbers, so this is the whole
+    comparison rather than a parser for one.
+
+    :param version: A version that matched VERSION.
+    :return: Its numbers, in order.
+    """
+    return tuple(int(part) for part in version.split("."))
+
+
+def verdict(have: str, there: str, named: bool) -> str:
+    """
+    Decides what the job does about the two versions.
+
+    Older than the pin is a rollback, which automation may not choose: a withdrawn release and
+    two pointers that disagree look the same from here. Only a version a person named may take
+    the pin backwards.
+
+    :param have: The pinned version.
+    :param there: The version upstream offers.
+    :param named: Whether a person named that version rather than a pointer.
+    :return: 'yes', 'no' or 'rollback'.
+    """
+    if order(there) > order(have):
+        return "yes"
+    if order(there) == order(have):
+        return "no"
+    return "yes" if named else "rollback"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Compares the shipped Pi version against the "
                                                  "one the npm registry calls latest.")
@@ -106,7 +144,8 @@ def main() -> int:
     answer = {
         "pinned": have,
         "upstream": there,
-        "update": "yes" if there != have else "no",
+        "source": "a version named by hand" if args.upstream else f"dist-tag {args.channel}",
+        "update": verdict(have, there, bool(args.upstream)),
         # Answered here rather than by the caller, so every agent's copy answers it the same way.
         "major": "moved" if there.split(".")[0] != have.split(".")[0] else "same",
     }

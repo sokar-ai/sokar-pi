@@ -25,6 +25,7 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 ### Fixed
 
 - The routing extension is written only when there is a token to put in it, not merely an endpoint.
+- The update job stops instead of rolling back when upstream offers an older version than is pinned, and compares versions as numbers rather than text.
 - The changelog waiver answers for the commit it is written on, rather than for everything pushed with it.
 - The changelog check asks whether an entry was added, not whether `CHANGELOG.md` was touched; a rewritten link line used to satisfy it.
 - The changelog check reads the waiver after fetching the base commit, not before; in a shallow clone it missed `[no changelog]` and failed the build anyway.

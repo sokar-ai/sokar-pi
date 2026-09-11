@@ -58,12 +58,20 @@ jobs:
           UPDATE: ${{ steps.detect.outputs.update }}
           UPSTREAM: ${{ steps.detect.outputs.upstream }}
           PINNED: ${{ steps.detect.outputs.pinned }}
+          SOURCE: ${{ steps.detect.outputs.source }}
         run: |
           set -eu
           if [ "$UPDATE" = "yes" ]; then
               echo "target=$UPSTREAM" >> "$GITHUB_OUTPUT"
               echo "proceed=yes" >> "$GITHUB_OUTPUT"
               echo "This module pins $PINNED; the target is $UPSTREAM."
+          elif [ "$UPDATE" = "rollback" ]; then
+              # Nothing is built or rented: a verified downgrade is not what decides this.
+              echo "proceed=no" >> "$GITHUB_OUTPUT"
+              echo "STOP=$SOURCE points at $UPSTREAM, older than the pinned $PINNED" >> "$GITHUB_ENV"
+              echo "Either upstream withdrew $PINNED, or it was pinned from another pointer."
+              echo "To go back deliberately, dispatch this workflow with version=$UPSTREAM."
+              echo "Until one of the two moves, every scheduled run stops here."
           else
               echo "proceed=no" >> "$GITHUB_OUTPUT"
               echo "Pi $PINNED is still what the channel points at."
