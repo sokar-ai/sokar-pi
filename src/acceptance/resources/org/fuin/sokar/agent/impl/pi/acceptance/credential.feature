@@ -46,7 +46,7 @@ Feature: A task authenticates without ever holding the credential
     And the vault holds the value of "SOKAR_E2E_OPENROUTER_API_KEY" as "openrouter" of kind "api-key"
     And a project called "live" of class "guarded" with a file in it
     And a terminal on the machine
-    When I run "cd ~/live && sokar task run --agent pi --provider openrouter --attach shell --keep --clearance deny"
+    When I run "cd ~/live && sokar task start --agent pi --provider openrouter --attach shell --clearance deny"
     And I wait for the shell inside the container
     Then the terminal shows "token"
     And the terminal does not show the value of "SOKAR_E2E_OPENROUTER_API_KEY"
