@@ -3,6 +3,7 @@ package org.fuin.sokar.agent.impl.pi;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.fuin.sokar.agent.api.Agent;
+import org.fuin.sokar.agent.api.AgentRegistry;
 import org.fuin.sokar.agent.api.RunRequest;
 import org.junit.jupiter.api.Test;
 
@@ -12,6 +13,16 @@ import org.junit.jupiter.api.Test;
 class PiAgentTest {
 
     private final Agent agent = new PiAgent();
+
+    @Test
+    void isDiscoveredThroughTheServiceLoader() {
+
+        // Found through META-INF/services, like claude and omp; the directory was here and empty.
+        final AgentRegistry registry = AgentRegistry.discover();
+
+        assertThat(registry.names()).contains("pi");
+        assertThat(registry.require("pi").definition().binary()).isEqualTo("pi");
+    }
 
     @Test
     void ignoresWhatTheRepositoryWouldConfigure() {

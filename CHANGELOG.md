@@ -12,7 +12,7 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ### Added
 
-- The Pi adapter: definition, credential handling, headless commands, log formatting.
+- The Pi adapter: definition, credential handling, headless commands. Its log is shown as Pi writes it; there is no formatter for it yet.
 - `.deb` and `.rpm` packages, published to Artifactory from `main`.
 - Pi 0.85.0 and a Node runtime, built into a tree from a lockfile and shipped inside the package.
 - A CycloneDX bill of materials in every package, merging the Maven graph and the npm tree.
@@ -24,6 +24,7 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ### Fixed
 
+- The agent is registered in `META-INF/services` like the other two, which was an empty directory; only in-process discovery read it, so no shipped package was affected.
 - The routing extension is written only when there is a token to put in it, not merely an endpoint.
 - Pi starts with `--no-approve`, so a repository's `.pi` directory neither asks a trust question inside a task nor reconfigures the agent.
 - The update job stops instead of rolling back when upstream offers an older version than is pinned, and compares versions as numbers rather than text.
