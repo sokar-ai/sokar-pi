@@ -8,15 +8,15 @@ name: pi
 label: Pi
 binary: pi
 
-# No 'sandboxed:' section yet, and that is a gap rather than a decision. Sokar turns an agent's
-# own permission prompts off in every task - the container is what makes the answer always yes -
-# but it adds only what a manifest declares, because the flag is the CLI's own and guessing it
-# would be wrong for every other agent. Claude Code declares --dangerously-skip-permissions and
-# Oh My Pi --auto-approve; Pi's equivalent has not been read off 'pi --help' on a machine that
-# has it. Until it is, this agent will still stop and ask, and an unattended run will wait for an
-# answer nobody is there to give.
+# Pi asks no permission questions: its shipped docs open "Pi runs with all permissions by
+# default", and 'pi --help' has no approval flag - measured on 0.85.0, 2026-09-11. Its one question
+# inside a task is whether to trust a workspace carrying .pi or .agents/skills.
 #
-# TODO: run 'pi --help' in a task image and declare what is found.
+# --no-approve answers it by ignoring those files, and that is a choice, not a default: trusting
+# them would load the repository's own extensions after sokar-route.ts, where one could re-register
+# the provider Sokar routed. The cost is that a repository's own Pi extensions do not load.
+sandboxed:
+  arguments: ["--no-approve"]
 
 git_identity:
   name: Pi
