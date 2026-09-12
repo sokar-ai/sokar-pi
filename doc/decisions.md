@@ -39,3 +39,24 @@ at the moment the pin was first recorded, and the pin would then still be stable
 
 **What would change it:** verifying the Node release signature (the project publishes signed
 `SHASUMS256.txt`) in the build or the pin check, which is worth doing when this is next touched.
+
+## Three projects, two names
+
+**Recorded 2026-09-12** when Sokar requirement A04 was retired into this repository, because the
+confusion it documents cost real work and will recur.
+
+`earendil-works/pi` is this agent: the Pi Agent Harness, published as
+`@earendil-works/pi-coding-agent`, run as `pi`. **Oh My Pi is a fork of a different Pi** by a
+different author, published as `@oh-my-pi/pi-coding-agent` and run as `omp`. Until 2026-09-05 the
+requirements said otherwise, and work recorded as having been done against one had been done
+against the other.
+
+## The endpoint is set by a file, not a variable
+
+Pi cannot be pointed at a broker with an environment variable: its endpoint comes from an extension
+it auto-discovers. That is the measured reason an agent definition declares **what shape of
+endpoint it can address** rather than Sokar assuming a variable exists - a distinction the contract
+now makes for every agent because of this one.
+
+Verified for the common API dialect against OpenRouter. Whether it holds for a provider that does
+not speak that dialect is open, and is `issues/004`.

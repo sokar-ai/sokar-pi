@@ -45,6 +45,13 @@ channel first, not in one copy.
 - **`issues/README.md` is the index**, and it is part of the change that adds or closes an issue.
   It opens with a table - number (linked), status, what it covers, how many questions are still
   open - ordered by priority rather than by number, so the top row is what to do next.
+- **A finished issue is deleted, row and all.** Not kept with a status saying it is done, not moved
+  to a section of what used to be here: the index holds what is still to do and nothing else.
+- **Before deleting it, move what outlives it.** The test is whether the knowledge is about more
+  than that one issue - a measurement, a distinction the contract makes, something that was built
+  wrong once. It goes to `doc/` if a person using the product needs it, to `AGENTS.md` if it is
+  internal and true wherever we work, to `.AGENTS.md` if it is only true on this machine. An
+  issue's own acceptance criteria outlive nothing and are dropped with it.
 - **Settled reasoning goes in `doc/decisions.md`**, including accepted risks. An accepted risk says
   what the exposure is, why it is not being removed, and what would change the answer.
 - **The exceptions to the dot-file rule here** are what a Java build needs: `.github`, `.mvn`,
