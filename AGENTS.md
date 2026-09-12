@@ -11,7 +11,7 @@ channel first, not in one copy.
   and can cancel one already running. Say what is ready and let him decide when.
 - **Nobody edits another agent's repository.** Reading is fine and encouraged. For this repository
   there is no exception: nobody has standing permission here, and that includes me elsewhere.
-- **The channel is `~/.sokar/agent-channel.md` and it is append-only.** One heading per entry,
+- **The channel is append-only.** One heading per entry,
   `## <date -u> — <agent>`. Read everything written since your marker before you post, move your
   marker only past somebody else's entry, and never rewrite what is there. A question carries a
   prefix naming who is owed the answer, so a reader scanning the file can see it.
