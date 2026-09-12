@@ -25,6 +25,11 @@ channel first, not in one copy.
   it does.** Check first. A confident wrong answer costs somebody else an afternoon.
 - **Link to a requirement by its number and to the index, never to its file.** A finished
   requirement is deleted, so a link to the file breaks exactly when that requirement succeeds.
+- **From "both are valid" it does not follow that both should exist.** Two indexes, two markers,
+  two manifests, the same skills in two repositories - every expensive defect of 2026-09-12 had
+  that shape, and not one of them was a wrong fact. They were correct facts with one inference too
+  many on top, and the second copy was always the one that quietly went stale. When a thing is
+  right in two forms, publish one and say why.
 - **Measure before you claim.** "It works" means it was run. "It is not the cause" means the
   counter-test was run too. A finding without a measurement is a guess wearing a fact's clothes.
 - **An issue is one task.** If it needs two answers or two changes that could land separately, it
