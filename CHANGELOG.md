@@ -10,6 +10,14 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ## [Unreleased]
 
+### Security
+
+- The acceptance run passes the model name to the container as data rather than inside a shell command.
+- The build script validates every value it accepts from the environment and passes them as data, so a version or image name carrying shell syntax is refused rather than executed.
+- The bill generator is installed from its own lockfile with scripts disabled, and neither it nor npm's cache is shipped any more - 46 MB less in the package.
+- The pin check also answers for the Node runtime: the reviewed defaults, no environment override, and the runtime that was actually built.
+- The CI no longer installs the unpinned Hetzner Python client; nothing had used it since the Java machine tooling replaced it.
+
 ### Added
 
 - An extension that records whether Pi is working, idle or waiting for a person, written into the container and read by the host.

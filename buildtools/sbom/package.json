@@ -1,0 +1,10 @@
+{
+  "name": "sokar-agent-pi-sbom-tool",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The bill-of-materials generator, pinned and integrity-checked. Installed from this lockfile inside the build container, never resolved from the registry at build time.",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@cyclonedx/cyclonedx-npm": "6.0.1"
+  }
+}

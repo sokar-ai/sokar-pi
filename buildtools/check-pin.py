@@ -18,6 +18,8 @@ Four questions:
     2  it is the version pom.xml pins
     3  package.json asks for that version
     4  package-lock.json resolves it, which is what npm ci actually installs
+    5  the Node runtime is the reviewed one - the build script's defaults, not an override,
+       and the runtime actually built reports that version
 
 NEEDS NO NETWORK, unlike the other agents' copies of this script. Everything it compares is in
 the repository, because everything this package installs is in the repository - which is the
@@ -33,7 +35,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -43,6 +47,8 @@ ROOT = Path(__file__).resolve().parents[1]
 POM = ROOT / "pom.xml"
 MANIFEST = ROOT / "src" / "main" / "npm" / "package.json"
 LOCKFILE = ROOT / "src" / "main" / "npm" / "package-lock.json"
+BUILD_SCRIPT = ROOT / "buildtools" / "build-pi-tree.sh"
+BUILT_NODE = ROOT / "target" / "tree" / "node" / "bin" / "node"
 FILTERED = ROOT / "target" / "classes" / "agent" / "pi.yaml"
 
 FAILURES = 0
@@ -56,6 +62,47 @@ def bad(message: str) -> None:
     global FAILURES
     print(f"  \033[31mFAIL\033[0m  {message}")
     FAILURES += 1
+
+
+def check_node_runtime() -> None:
+    """
+    Checks that the shipped Node runtime is the reviewed one.
+
+    The Pi version is pinned in four files that all sit in the repository. The runtime was not:
+    its version and digest are defaults in the build script, overridable from the environment,
+    so a changed variable could ship a different runtime while every other pin stayed green.
+    """
+    script = BUILD_SCRIPT.read_text(encoding="utf-8")
+    reviewed = {}
+    for name in ("NODE_VERSION", "NODE_SHA256"):
+        found = re.search(rf'^{name}="\$\{{{name}:-([^}}]+)\}}"', script, re.M)
+        if not found:
+            bad(f"{BUILD_SCRIPT.name} declares no default for {name}")
+            return
+        reviewed[name] = found.group(1)
+    ok(f"the build script pins Node {reviewed['NODE_VERSION']}")
+
+    # An override is not forbidden for a developer trying something; it is forbidden silently.
+    for name, value in reviewed.items():
+        given = os.environ.get(name)
+        if given is not None and given != value:
+            bad(f"{name} is overridden in the environment - the package would not carry the "
+                f"reviewed runtime")
+
+    if not BUILT_NODE.is_file():
+        print("   (no built tree, so the runtime itself was not asked - build with podman first)")
+        return
+    try:
+        reported = subprocess.run([str(BUILT_NODE), "--version"], capture_output=True, text=True,
+                                  timeout=30, check=True).stdout.strip()
+    except Exception as failure:  # noqa: BLE001
+        bad(f"the built runtime could not be asked its version: {failure}")
+        return
+    if reported != f"v{reviewed['NODE_VERSION']}":
+        bad(f"the built runtime reports {reported}, the build script pins "
+            f"v{reviewed['NODE_VERSION']}")
+    else:
+        ok(f"the runtime in the package reports {reported}")
 
 
 def main() -> int:
@@ -109,6 +156,10 @@ def main() -> int:
         bad(f"the lockfile resolves {entry.get('version')}, and npm ci installs the lockfile")
     else:
         ok("the lockfile resolves it, which is what npm ci installs")
+
+    print()
+    print("== the Node runtime the package carries ==")
+    check_node_runtime()
 
     print()
     if FAILURES:

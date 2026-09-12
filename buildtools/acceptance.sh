@@ -258,8 +258,10 @@ pass "the task started (container $CONTAINER)"
 # Not a ':free' variant - 'z-ai/glm-5.2:free' returned rate_limit_exceeded on three consecutive
 # attempts, and a gate that fails on somebody else's quota is not a gate.
 MODEL="${SOKAR_E2E_MODEL:-z-ai/glm-5.3-flash}"
-ANSWER="$(podman exec "$CONTAINER" sh -c \
-    "timeout 240 pi --print --model '$MODEL' 'Reply with exactly the word SOKARLIVE and nothing else.' 2>&1" \
+# The model reaches the container as data in a variable, never inside the command string:
+# a value carrying a quote would otherwise close the argument and run whatever followed it.
+ANSWER="$(podman exec --env "SOKAR_E2E_MODEL_VALUE=$MODEL" "$CONTAINER" sh -c \
+    'timeout 240 pi --print --model "$SOKAR_E2E_MODEL_VALUE" "Reply with exactly the word SOKARLIVE and nothing else." 2>&1' \
     2>/dev/null)"
 
 if echo "$ANSWER" | grep -q "SOKARLIVE"; then

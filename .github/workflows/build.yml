@@ -134,9 +134,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install the Hetzner client
-        run: pip install --quiet hcloud
-
       # For the Cucumber half, which runs on this runner against the rented machine and needs the JDK.
       - name: Set up Java
         uses: graalvm/setup-graalvm@v1
