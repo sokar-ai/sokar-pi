@@ -59,6 +59,12 @@ channel first, not in one copy.
   what the exposure is, why it is not being removed, and what would change the answer.
 - **The exceptions to the dot-file rule here** are what a Java build needs: `.github`, `.mvn`,
   `.gitignore`, `.gitkeep`, plus `__pycache__/` for the Python tooling.
+- **The skills this repository expects**, at the operator's instruction: Oracle's GraalVM skill
+  (`oracle/skills`, the `graal` directory) because the build produces a native image, and
+  `decebals/claude-code-java` because it is a Java repository. They come from
+  **<https://fuinorg.jfrog.io/artifactory/agent-skills/>** rather than from GitHub: a tag upstream
+  is a name its owner may repoint, and what is republished there is what was reviewed and can be
+  rolled back.
 - **The changelog is part of the change.** `buildtools/check-changelog.py` fails a code change that
   says nothing; `[no changelog]` in the commit message is for changes that genuinely alter nothing
   an operator would notice.
