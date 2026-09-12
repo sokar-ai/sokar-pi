@@ -45,6 +45,9 @@ channel first, not in one copy.
 - **`issues/README.md` is the index**, and it is part of the change that adds or closes an issue.
   It opens with a table - number (linked), status, what it covers, how many questions are still
   open - ordered by priority rather than by number, so the top row is what to do next.
+- **`doc/decisions.md` opens with its own index**: a table of date and one line saying what was
+  decided, newest first, each row linking to the full text below it. Writing the row is part of
+  taking the decision.
 - **A finished issue is deleted, row and all.** Not kept with a status saying it is done, not moved
   to a section of what used to be here: the index holds what is still to do and nothing else.
 - **Before deleting it, move what outlives it.** The test is whether the knowledge is about more
