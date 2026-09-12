@@ -60,3 +60,11 @@ now makes for every agent because of this one.
 
 Verified for the common API dialect against OpenRouter. Whether it holds for a provider that does
 not speak that dialect is open, and is `issues/004`.
+
+## What was actually proven about brokering this agent
+
+**Recorded 2026-09-12** from Sokar requirement A04 before it was retired.
+
+Brokering is verified **for the common API dialect, against OpenRouter, and for nothing else**. The
+number of providers this agent supports was never verified here; a figure that once appeared in the
+requirement belonged to no project in particular, which is why none is repeated here.
