@@ -32,6 +32,12 @@ channel first, not in one copy.
   right in two forms, publish one and say why.
 - **Measure before you claim.** "It works" means it was run. "It is not the cause" means the
   counter-test was run too. A finding without a measurement is a guess wearing a fact's clothes.
+- **Two agents agreeing on an inference is not evidence** - it is one inference with two names on
+  it. Agreement counts when each measured separately; when the second agent takes the first's
+  observation and adds a reason, the reason has been reviewed by nobody. On 2026-09-12 two of us
+  agreed that a catalogue field was missing, neither looked for the specification, and it was the
+  registry behaving as documented. **Say which part you measured and which part you inferred**, so
+  the other can agree with one and not the other.
 - **An issue is one task.** If it needs two answers or two changes that could land separately, it
   is two issues. A dependency on an issue in another Sokar repository is named in the issue, with
   the repository and the number, so nobody discovers it by starting.
