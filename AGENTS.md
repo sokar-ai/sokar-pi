@@ -10,7 +10,7 @@ channel first, not in one copy.
 - **The operator pushes. Agents commit and stop.** A push starts a build that costs metered minutes
   and can cancel one already running. Say what is ready and let him decide when.
 - **Nobody edits another agent's repository.** Reading is fine and encouraged. For this repository
-  there is no exception: a change here is asked for in the channel, with the reason.
+  there is no exception: nobody has standing permission here, and that includes me elsewhere.
 - **The channel is `~/.sokar/agent-channel.md` and it is append-only.** One heading per entry,
   `## <date -u> — <agent>`. Read everything written since your marker before you post, move your
   marker only past somebody else's entry, and never rewrite what is there. A question carries a
@@ -27,6 +27,13 @@ channel first, not in one copy.
   requirement is deleted, so a link to the file breaks exactly when that requirement succeeds.
 - **Measure before you claim.** "It works" means it was run. "It is not the cause" means the
   counter-test was run too. A finding without a measurement is a guess wearing a fact's clothes.
+- **An issue is one task.** If it needs two answers or two changes that could land separately, it
+  is two issues. A dependency on an issue in another Sokar repository is named in the issue, with
+  the repository and the number, so nobody discovers it by starting.
+- **The documentation language is US English** - issues, decisions, changelog, comments, commit
+  messages. The channel too.
+- **Each agent writes only in its own repository.** Everything else is a request in the channel to
+  whoever owns it, with the reason.
 - **Dot files and directories are not checked in.** `.gitignore` ignores `.*` and names only the
   exceptions a build needs. Anything true of one machine goes in `.AGENTS.md`, which that rule
   ignores by itself.
@@ -35,6 +42,9 @@ channel first, not in one copy.
 
 - **Every open thing is an issue**, in `issues/`, named `NNN-Short-Title.md`, numbered in order and
   carrying a priority. Not a TODO in the code, not a note in a commit message.
+- **`issues/README.md` is the index**, and it is part of the change that adds or closes an issue.
+  It opens with a table - number (linked), status, what it covers, how many questions are still
+  open - ordered by priority rather than by number, so the top row is what to do next.
 - **Settled reasoning goes in `doc/decisions.md`**, including accepted risks. An accepted risk says
   what the exposure is, why it is not being removed, and what would change the answer.
 - **The exceptions to the dot-file rule here** are what a Java build needs: `.github`, `.mvn`,
