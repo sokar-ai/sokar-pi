@@ -12,6 +12,7 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ### Added
 
+- An extension that records whether Pi is working, idle or waiting for a person, written into the container and read by the host.
 - The Pi adapter: definition, credential handling, headless commands. Its log is shown as Pi writes it; there is no formatter for it yet.
 - `.deb` and `.rpm` packages, published to Artifactory from `main`.
 - Pi 0.85.0 and a Node runtime, built into a tree from a lockfile and shipped inside the package.
