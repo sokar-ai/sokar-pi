@@ -199,6 +199,27 @@ fi
 
 CREDENTIAL="$SOKAR_E2E_OPENROUTER_API_KEY"
 
+# The rule in the banner above is a rule about this file too. `grep -F "$CREDENTIAL"` publishes
+# the value in /proc to every process on the machine for as long as the grep runs, which is the
+# same defect this suite exists to catch elsewhere. The pattern arrives on a file descriptor.
+contains_credential() {            # haystack on stdin
+    grep -qFf <(printf '%s\n' "$CREDENTIAL")
+}
+
+# `grep` is line-bounded, and a credential that reaches a log across a newline - wrapped output,
+# two writes, a formatter breaking a long line - matches nothing, so the check passes and reads as
+# evidence that nothing leaked. The second pass looks at the same bytes with the line breaks
+# removed, one file at a time so a value cannot appear to span two of them.
+credential_in() {
+    grep -rqFf <(printf '%s\n' "$CREDENTIAL") "$@" 2>/dev/null && return 0
+    local f
+    while IFS= read -r f; do
+        tr -d '\r\n' < "$f" | contains_credential && return 0
+    done < <(find "$@" -type f 2>/dev/null)
+    return 1
+}
+
+
 # This run's own vault, with its own passphrase, in its own directory. The operator's is
 # never read or replaced - and on a CI server there is not one anyway, which is exactly why
 # the redirect must be explicit rather than incidental.
@@ -220,13 +241,13 @@ fi
 
 # A real credential makes these searchable in a way a fake one cannot: a fake one may
 # coincidentally not be stored at all.
-if sokar vault list 2>/dev/null | grep -qF "$CREDENTIAL"; then
+if sokar vault list 2>/dev/null | contains_credential; then
     fail "vault list printed the credential value"
 else
     pass "vault list does not print the value"
 fi
 
-if grep -qF "$CREDENTIAL" "$SOKAR_VAULT" 2>/dev/null; then
+if contains_credential < "$SOKAR_VAULT" 2>/dev/null; then
     fail "the credential is in the clear in the vault file"
 else
     pass "the credential is not recoverable from the vault file"
@@ -274,14 +295,14 @@ fi
 # These two are worth having even when the one above fails. A credential scheme that
 # authenticates by handing the real key to the agent has not failed loudly - it has failed
 # quietly, and only a real credential makes the leak searchable.
-if podman exec "$CONTAINER" sh -c 'env' 2>/dev/null | grep -qF "$CREDENTIAL"; then
+if podman exec "$CONTAINER" sh -c 'env' 2>/dev/null | contains_credential; then
     fail "the real credential is in the container's environment"
 else
     pass "the container holds no credential, only a task-scoped token"
 fi
 
 STATE="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/sokar"
-if grep -rqF "$CREDENTIAL" "$STATE" "$START_LOG" 2>/dev/null; then
+if credential_in "$STATE" "$START_LOG"; then
     fail "the real credential appears in Sokar's own logs"
 else
     pass "the credential appears in no log this run produced"

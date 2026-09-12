@@ -12,6 +12,8 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ### Security
 
+- The acceptance suite no longer puts the test credential on a command line; the pattern reaches `grep` on a file descriptor.
+- The check that no log holds the credential also searches with line breaks removed, so a value split across a newline is found rather than reported as absent.
 - The acceptance run passes the model name to the container as data rather than inside a shell command.
 - The build script validates every value it accepts from the environment and passes them as data, so a version or image name carrying shell syntax is refused rather than executed.
 - The bill generator is installed from its own lockfile with scripts disabled, and neither it nor npm's cache is shipped any more - 46 MB less in the package.
