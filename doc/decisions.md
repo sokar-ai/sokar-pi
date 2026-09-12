@@ -6,15 +6,17 @@ somebody would otherwise ask "why is it like this?" and find only code.
 Accepted risks live here too. An accepted risk is not a forgotten one: it says what the exposure
 is, why it is not being removed, and what would change the answer.
 
-Newest first, and in the order they stand below. Each row links to its full text.
+Newest first, and in the order they stand below. The date is when the decision was taken,
+not when its row was written - the older ones were found with `git log -S` on the sentence
+rather than guessed.
 
 | Date | What was decided |
 |---|---|
 | 2026-09-12 | [The bill generator is installed from its own lockfile, not resolved at build time](#the-bill-generator-is-installed-from-its-own-lockfile-not-resolved-at-build-time) - and neither it nor npm's cache is shipped any more |
 | 2026-09-12 | [Accepted risk: the Node runtime digest was first read from the service that serves it](#accepted-risk-the-node-runtime-digest-was-first-read-from-the-service-that-serves-it) - reviewed and pinned since, and the built runtime is asked its version |
-| 2026-09-12 | [Three projects, two names](#three-projects-two-names) - the confusion that cost real work until 2026-09-05 |
-| 2026-09-12 | [The endpoint is set by a file, not a variable](#the-endpoint-is-set-by-a-file-not-a-variable) - why an agent declares what shape of endpoint it can address |
-| 2026-09-12 | [What was actually proven about brokering this agent](#what-was-actually-proven-about-brokering-this-agent) - which transport, which credential kind, against what |
+| 2026-09-05 | [Three projects, two names](#three-projects-two-names) - the confusion that cost real work until 2026-09-05 |
+| 2026-09-04 | [The endpoint is set by a file, not a variable](#the-endpoint-is-set-by-a-file-not-a-variable) - why an agent declares what shape of endpoint it can address |
+| 2026-09-04 | [What was actually proven about brokering this agent](#what-was-actually-proven-about-brokering-this-agent) - which transport, which credential kind, against what |
 
 ## The bill generator is installed from its own lockfile, not resolved at build time
 
