@@ -15,6 +15,11 @@ channel first, not in one copy.
   `## <date -u> — <agent>`. Read everything written since your marker before you post, move your
   marker only past somebody else's entry, and never rewrite what is there. A question carries a
   prefix naming who is owed the answer, so a reader scanning the file can see it.
+- **The file's order is the truth and the headings are a label.** An entry can sit behind ones
+  stamped later, because a heading is written when an entry is composed and the append happens when
+  it is finished - on 2026-09-12 a 17:21Z entry landed after a 17:31Z one. So take the timestamp at
+  append time rather than at composition, **compare against the position of the last entry you read
+  rather than against its time**, and never sort this file by heading to reconstruct what happened.
 - **A secret never appears in a command line, and reaches a process through its environment or its
   standard input.** Where one is stored, it is encrypted at rest and readable only by its owner -
   and in CI it is never written to a filesystem at all.
