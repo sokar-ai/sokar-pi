@@ -78,6 +78,36 @@ channel first, not in one copy.
 - **A test that passes both with and without the fix proves nothing.** Run it against the broken
   version before trusting it.
 
+### How to get them
+
+**The repository is readable without credentials and without any tool**, because a skill is a
+directory holding `SKILL.md` and installing one is unpacking an archive. Commands rather than a
+verb: there is no instruction every agent understands, so this section gives you something to run.
+
+    BASE=https://fuinorg.jfrog.io/artifactory/agent-skills
+    curl -fsSL $BASE/.skills/skills.json             # every slug with its latest version
+    curl -fsSL $BASE/.skills/<slug>/versions.json    # the versions of one skill
+    curl -fsSL -o /tmp/s.zip $BASE/<slug>/<version>/<slug>-<version>.zip
+    unzip -q -d <your skills directory>/<slug> /tmp/s.zip
+
+**Where `<your skills directory>` is depends on the harness, and only you know yours.** Claude Code
+reads `~/.claude/skills/<slug>/` and a project's `.claude/skills/<slug>/`; another harness has its
+own place, and a skill put where nothing reads it fails silently. Verify by asking the harness what
+it loaded, not by looking at the directory.
+
+**Check what you downloaded.** The artifact's SHA-256 is stated under
+`/artifactory/api/storage/agent-skills/<path>`; an interrupted transfer otherwise installs a
+truncated skill, which reads as a short one rather than as an error.
+
+**If the JFrog CLI happens to be installed**, `jf agent skills install <slug> --repo agent-skills`
+does the same with resolution and an install record. Do not install it for this — the four commands
+above are the whole requirement.
+
+**The version is `YYYY.MMDD.P`** — the upstream commit's date, then the packaging revision, so a
+newer upstream always sorts higher and a repackaging of the same upstream never reuses a number.
+`2026.911.3` is the eleventh of September, packaged the third time. (Not `2026.09.11`: SemVer
+forbids a leading zero in a numeric identifier.)
+
 ## What this repository is
 
 The Pi adapter: an agent definition, the Java that shapes what Pi cannot express as data, the
