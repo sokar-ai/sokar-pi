@@ -12,11 +12,35 @@ rather than guessed.
 
 | Date | What was decided |
 |---|---|
+| 2026-09-13 | [`build-pi-tree.sh` stays a shell script](#build-pi-treesh-stays-a-shell-script) - it orchestrates podman and npm, and Java would be the same calls in more lines |
 | 2026-09-12 | [The bill generator is installed from its own lockfile, not resolved at build time](#the-bill-generator-is-installed-from-its-own-lockfile-not-resolved-at-build-time) - and neither it nor npm's cache is shipped any more |
 | 2026-09-12 | [Accepted risk: the Node runtime digest was first read from the service that serves it](#accepted-risk-the-node-runtime-digest-was-first-read-from-the-service-that-serves-it) - reviewed and pinned since, and the built runtime is asked its version |
 | 2026-09-05 | [Three projects, two names](#three-projects-two-names) - the confusion that cost real work until 2026-09-05 |
 | 2026-09-04 | [The endpoint is set by a file, not a variable](#the-endpoint-is-set-by-a-file-not-a-variable) - why an agent declares what shape of endpoint it can address |
 | 2026-09-04 | [What was actually proven about brokering this agent](#what-was-actually-proven-about-brokering-this-agent) - which transport, which credential kind, against what |
+
+## `build-pi-tree.sh` stays a shell script
+
+**Decided 2026-09-13**, agreeing with Sokar B53's proposal for it.
+
+The build is to be Java and Maven, and a file that is not says why. This one runs `npm ci` and the
+bill generator inside a pinned builder container through podman, validates three overridable inputs,
+and packs the tree. Every step is a process call; a Java version would make the same calls with more
+lines and hide them behind a process API. What it must not lose is its input guards.
+
+**Its regression matrix**, run by hand on 2026-09-12 and carried over from the retired issue 002.
+Each of these must be refused with exit 2, executing nothing:
+
+    NODE_VERSION='22.20.0; touch /tmp/pwned'
+    NODE_VERSION='22.20.0$(id)'
+    NODE_VERSION="'; rm -rf /out; '"
+    NODE_SHA256=deadbeef
+    PI_BUILDER_IMAGE='node:22; id'
+
+Whoever changes the script runs the matrix and records the result in the commit.
+
+**What would change the answer:** the tree build needing logic that is not a process call - parsing,
+merging, deciding - which belongs in Java rather than grown into this file.
 
 ## The bill generator is installed from its own lockfile, not resolved at build time
 

@@ -91,6 +91,11 @@ channel first, not in one copy.
   otherwise have to reconstruct. No exhaustive prose inlined in source.
 - **A test that passes both with and without the fix proves nothing.** Run it against the broken
   version before trusting it.
+- **The build is Java and Maven, and a file that is not says why it stays** (Sokar B53, 2026-09-13).
+  What stays: `mvnw`, the Maven wrapper, which is how a pinned Maven arrives before any Java tooling
+  can run; and `buildtools/build-pi-tree.sh`, which orchestrates podman and npm in a pinned container
+  - the reason and its guard matrix are in `doc/decisions.md`. The Python tools and `acceptance.sh`
+  are on their way out - issues 009 to 012.
 
 ### How to get them
 
