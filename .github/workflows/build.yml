@@ -32,13 +32,6 @@ jobs:
           cache: 'maven'
 
       # -s settings.xml declares the snapshot repository the agent contract is resolved from, and keeps.
-      # A changelog nobody is obliged to write stops being written.
-      - name: The changelog says what changed
-        env:
-          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-          HEAD: ${{ github.sha }}
-        run: python3 buildtools/check-changelog.py "$BASE" "$HEAD"
-
       - name: Build and unit tests
         run: ./mvnw -B -s settings.xml verify
 

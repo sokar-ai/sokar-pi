@@ -10,6 +10,10 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ## [Unreleased]
 
+### Removed
+
+- The changelog check in CI; requiring an entry returns later, built on logchange.
+
 ### Changed
 
 - The pin check is a unit test instead of a Python script: the definition, the pom, `package.json` and the lockfile must name one version, and the Node runtime must not be overridden.

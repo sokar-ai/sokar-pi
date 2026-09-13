@@ -84,9 +84,9 @@ channel first, not in one copy.
   **<https://fuinorg.jfrog.io/artifactory/agent-skills/>** rather than from GitHub: a tag upstream
   is a name its owner may repoint, and what is republished there is what was reviewed and can be
   rolled back.
-- **The changelog is part of the change.** `buildtools/check-changelog.py` fails a code change that
-  says nothing; `[no changelog]` in the commit message is for changes that genuinely alter nothing
-  an operator would notice.
+- **The changelog is part of the change**, written by hand in the same commit. Nothing enforces it
+  for now: the check was removed on 2026-09-13 by the operator's decision, and requiring an entry
+  returns with Sokar B55.
 - **Comments say why, not what.** One-liners in config; in code, the reason a reader would
   otherwise have to reconstruct. No exhaustive prose inlined in source.
 - **A test that passes both with and without the fix proves nothing.** Run it against the broken
