@@ -95,7 +95,7 @@ channel first, not in one copy.
   What stays: `mvnw`, the Maven wrapper, which is how a pinned Maven arrives before any Java tooling
   can run; and `buildtools/build-pi-tree.sh`, which orchestrates podman and npm in a pinned container
   - the reason and its guard matrix are in `doc/decisions.md`. The Python tools and `acceptance.sh`
-  are on their way out - issues 009 to 012.
+  are on their way out - issues 010 to 012.
 
 ### How to get them
 

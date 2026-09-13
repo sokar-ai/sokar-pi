@@ -42,10 +42,6 @@ jobs:
       - name: Build and unit tests
         run: ./mvnw -B -s settings.xml verify
 
-      # The definition, the npm manifest and the lockfile must name one version.
-      - name: The pin agrees everywhere it is written
-        run: python3 buildtools/check-pin.py
-
       # The packages are what an operator installs, so a build that has not produced them has not proved.
       - name: Native binary and packages
         run: ./mvnw -B -s settings.xml -Pnative,dist verify -DskipTests

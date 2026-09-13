@@ -10,9 +10,9 @@ or the divergence should be deliberate.
 ## What is already built here
 
 Detect, apply, verify, publish all exist: `buildtools/upstream-version.py` reads the npm dist-tag,
-`buildtools/update.py` moves the pin and regenerates the lockfile, `buildtools/check-pin.py` refuses
-a disagreement between the four places that name a version - and since 2026-09-12 also refuses a
-Node runtime that is not the reviewed one - and `buildtools/compare-bills.py` stops a release that
+`buildtools/update.py` moves the pin and regenerates the lockfile, the unit test `PinAgreementTest`
+refuses a disagreement between the four places that name a version - and also refuses a Node
+runtime that is not the reviewed one - and `buildtools/compare-bills.py` stops a release that
 changes what third-party code ships.
 
 So this issue is not "build the pipeline". It is the set of questions the pipeline still answers by

@@ -5,8 +5,8 @@ identity, not sequence.
 
 | # | Status | Blocked by | What it covers | Open questions |
 |---|---|---|---|---|
-| [009](009-Check-The-Pin-In-A-Unit-Test.md) | open | — | The pin check as a unit test and a post-build check instead of a Python script. First step of Sokar B53. | 0 |
 | [006](006-Check-What-Pi-Asks-At-First-Run.md) | open | — | Whether a fresh task shows anything besides the trust question before Pi starts work. Never checked. | 1 |
+| [013](013-The-Built-Runtime-Is-Never-Asked-In-CI.md) | open | — | The built Node runtime's version is never asked in CI, because the tree does not exist yet when the check runs. | 1 |
 | [010](010-Replace-The-Build-Time-Python-Tools.md) | blocked | Sokar B53 | The Python tools every build runs, replaced by the tool Sokar publishes. | 0 |
 | [011](011-Replace-The-Update-Pipeline-Python-Tools.md) | blocked | Sokar B53 | The Python tools the update job runs, replaced by the tool Sokar publishes. | 0 |
 | [012](012-Acceptance-As-Kit-Scenarios.md) | blocked | Sokar B53 | The acceptance shell script turned into scenarios on acceptance-kit steps. | 1 |

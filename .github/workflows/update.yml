@@ -102,12 +102,6 @@ jobs:
         run: |
           ./mvnw -B -s settings.xml verify || echo "STOP=the unit suite failed" >> "$GITHUB_ENV"
 
-      # Nothing else enforces that the definition, the manifest and the lockfile agree.
-      - name: The pin agrees everywhere it is written
-        if: steps.plan.outputs.proceed == 'yes' && !env.STOP
-        run: |
-          python3 buildtools/check-pin.py || echo "STOP=the shipped version disagrees somewhere" >> "$GITHUB_ENV"
-
       - name: Native binary and packages
         if: steps.plan.outputs.proceed == 'yes' && !env.STOP
         run: |

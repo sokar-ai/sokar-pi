@@ -69,8 +69,8 @@ the same response as the file - but the value was originally taken from that ser
 recording of it trusted that service.
 
 **Why it is accepted:** the digest is now a reviewed constant in a file that changes only through a
-commit, and since 2026-09-12 `check-pin.py` refuses an environment override and asks the runtime
-that was actually built what version it is. An attacker would have to have compromised nodejs.org
+commit, and since 2026-09-12 the pin check refuses an environment override and asks the runtime
+that was actually built what version it is - a unit test since 2026-09-13, `PinAgreementTest`. An attacker would have to have compromised nodejs.org
 at the moment the pin was first recorded, and the pin would then still be stable and auditable.
 
 **What would change it:** verifying the Node release signature (the project publishes signed

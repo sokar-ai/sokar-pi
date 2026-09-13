@@ -104,9 +104,11 @@ the third-party component set or a license changed, or when the upstream **major
 are not excused, which is the point**: measured, 0.85.1 resolves two packages fewer than 0.85.0,
 and that is exactly the kind of change a person has to look at.
 
-`buildtools/check-pin.py` runs on every push and needs no network: the definition, `package.json`
-and the lockfile must name one version, and the lockfile is the one that decides, because
-`npm ci` installs the lockfile and ignores what the manifest asked for.
+`PinAgreementTest` runs with the unit tests on every build and needs no network: the definition,
+the pom, `package.json` and the lockfile must name one version, and the lockfile is the one that
+decides, because `npm ci` installs the lockfile and ignores what the manifest asked for. It also
+refuses a Node runtime overridden from the environment, and asks the built runtime its version
+where a tree has been built.
 
 ## Publishing
 
