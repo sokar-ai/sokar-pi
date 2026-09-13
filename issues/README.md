@@ -3,19 +3,21 @@
 What is open in this repository, ordered by what to do next rather than by number. The number is
 identity, not sequence.
 
-| # | Status | What it covers | Open questions |
-|---|---|---|---|
-| [006](006-Check-What-Pi-Asks-At-First-Run.md) | open | Whether a fresh task shows anything besides the trust question before Pi starts work. Never checked. | 1 |
-| [001](001-Pin-GitHub-Actions-By-Sha.md) | handed on | Every third-party GitHub Action runs from a mutable tag, beside the tokens that publish packages and open pull requests. | 1 |
-| [003](003-Automated-Agent-Updates.md) | open | The update pipeline is built; what it still decides by convention rather than by a stated rule, including a second pin with no detector. | 5 |
-| [005](005-Declare-What-Waiting-Looks-Like.md) | blocked | Declaring what "waiting for a person" looks like in this agent's own output. Waits on Sokar B47 for the field to declare it in. | 1 |
-| [007](007-Fail-Acceptance-When-A-Release-Adds-A-Dialog.md) | blocked | The acceptance run fails when a release adds a first-run dialog. Waits on Sokar B52. | 1 |
-| [002](002-No-Test-Harness-For-Python-Tooling.md) | open | The Python tools that decide what gets shipped have no tests, and nothing in CI could run one. | 1 |
-| [004](004-Can-Pi-Reach-A-Forge-Subscription.md) | open | Whether this agent reaches a forge subscription at all, and whether brokering holds beyond the one dialect it was proven against. | 3 |
+| # | Status | Blocked by | What it covers | Open questions |
+|---|---|---|---|---|
+| [006](006-Check-What-Pi-Asks-At-First-Run.md) | open | — | Whether a fresh task shows anything besides the trust question before Pi starts work. Never checked. | 1 |
+| [001](001-Pin-GitHub-Actions-By-Sha.md) | handed on | — | Every third-party GitHub Action runs from a mutable tag, beside the tokens that publish packages and open pull requests. | 1 |
+| [003](003-Automated-Agent-Updates.md) | open | — | The update pipeline is built; what it still decides by convention rather than by a stated rule, including a second pin with no detector. | 5 |
+| [005](005-Declare-What-Waiting-Looks-Like.md) | blocked | Sokar B47 | Declaring what "waiting for a person" looks like in this agent's own output. | 1 |
+| [007](007-Fail-Acceptance-When-A-Release-Adds-A-Dialog.md) | blocked | Sokar B52 | The acceptance run fails when a release adds a first-run dialog. | 1 |
+| [008](008-Declare-Where-The-Session-Id-Is.md) | blocked | Sokar B46 | Declaring where this agent's session id is, so a task that comes back continues its conversation. | 2 |
+| [002](002-No-Test-Harness-For-Python-Tooling.md) | open | — | The Python tools that decide what gets shipped have no tests, and nothing in CI could run one. | 1 |
+| [004](004-Can-Pi-Reach-A-Forge-Subscription.md) | open | — | Whether this agent reaches a forge subscription at all, and whether brokering holds beyond the one dialect it was proven against. | 3 |
 
 **Status** means: `open` - nobody is on it. `in progress` - somebody is. `handed on` - the work
 belongs to another repository and this row tracks what has to change here afterwards. `blocked` -
-waiting on an answer, and the row says whose.
+waiting on something else, and **Blocked by** names it: an issue here by its number, a Sokar
+requirement as `Sokar B<n>`.
 
 ## The one that is not ours to finish
 

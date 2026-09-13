@@ -59,8 +59,10 @@ channel first, not in one copy.
 - **Every open thing is an issue**, in `issues/`, named `NNN-Short-Title.md`, numbered in order and
   carrying a priority. Not a TODO in the code, not a note in a commit message.
 - **`issues/README.md` is the index**, and it is part of the change that adds or closes an issue.
-  It opens with a table - number (linked), status, what it covers, how many questions are still
-  open - ordered by priority rather than by number, so the top row is what to do next.
+  It opens with a table - number (linked), status, what blocks it, what it covers, how many
+  questions are still open - ordered by priority rather than by number, so the top row is what
+  to do next. **Blocked by** is a column, not prose inside the description, and names a Sokar
+  requirement by its number, so the dependency reads the same from Sokar's **Blocks** column.
 - **`doc/decisions.md` opens with its own index**: a table of date and one line saying what was
   decided, newest first, each row linking to the full text below it. Writing the row is part of
   taking the decision.
