@@ -3,8 +3,7 @@
 **Priority:** 4
 **Opened:** 2026-09-13
 **Source:** Sokar requirement B24, handed to this repository on 2026-09-13
-**Depends on:** a Sokar acceptance-kit step, "the agent reached work without a prompt" - requested
-from Sokar on 2026-09-13, number not yet assigned
+**Depends on:** Sokar B52, the acceptance-kit step "the agent reached work without a prompt"
 
 ## What
 
