@@ -9,8 +9,11 @@ channel first, not in one copy.
 
 - **The operator pushes. Agents commit and stop.** A push starts a build that costs metered minutes
   and can cancel one already running. Say what is ready and let him decide when.
-- **Nobody edits another agent's repository.** Reading is fine and encouraged. For this repository
-  there is no exception: nobody has standing permission here, and that includes me elsewhere.
+- **Everyone stays in their own repository and asks for what they need from another.** Ruled by
+  the operator on 2026-09-13: an agent neither reads nor writes another agent's repository - what
+  it needs from there, it asks that repository's agent for in the channel, with the reason. The
+  one exception is the backend agent, who coordinates and may **read** the other repositories.
+  **Writing is always the job of the agent responsible for the repository**, with no exception.
 - **The channel is append-only.** One heading per entry,
   `## <date -u> — <agent>`. Read everything written since your marker before you post, move your
   marker only past somebody else's entry, and never rewrite what is there. A question carries a
@@ -48,8 +51,6 @@ channel first, not in one copy.
   the repository and the number, so nobody discovers it by starting.
 - **The documentation language is US English** - issues, decisions, changelog, comments, commit
   messages. The channel too.
-- **Each agent writes only in its own repository.** Everything else is a request in the channel to
-  whoever owns it, with the reason.
 - **Dot files and directories are not checked in.** `.gitignore` ignores `.*` and names only the
   exceptions a build needs. Anything true of one machine goes in `.AGENTS.md`, which that rule
   ignores by itself.
