@@ -119,6 +119,22 @@ newer upstream always sorts higher and a repackaging of the same upstream never 
 `2026.911.3` is the eleventh of September, packaged the third time. (Not `2026.09.11`: SemVer
 forbids a leading zero in a numeric identifier.)
 
+### Measuring what an agent asks at first run
+
+What a fresh task shows a person can only be measured at a real terminal, on a machine where the
+agent has never run. Four traps each answered the wrong question on 2026-09-10:
+
+- `--version` never reaches the first-run flow, so it proves nothing about dialogs.
+- Start in `/workspace`. From `/home/agent` an agent asks whether to trust that directory instead
+  of showing the dialog being looked for.
+- The task image has neither `python3` nor `node`: a probe that changes an agent's own JSON writes
+  the whole file rather than patching it.
+- A binary that exists is not a binary that is current. Check its timestamp or version; a day-old
+  build once answered as if it were the one just made.
+
+Sokar's own acceptance suite runs a stub agent that has no dialogs, so a green Sokar build says
+nothing about what a real agent asks. That check belongs in this repository.
+
 ## What this repository is
 
 The Pi adapter: an agent definition, the Java that shapes what Pi cannot express as data, the

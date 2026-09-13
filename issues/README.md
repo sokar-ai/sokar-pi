@@ -5,9 +5,11 @@ identity, not sequence.
 
 | # | Status | What it covers | Open questions |
 |---|---|---|---|
+| [006](006-Check-What-Pi-Asks-At-First-Run.md) | open | Whether a fresh task shows anything besides the trust question before Pi starts work. Never checked. | 1 |
 | [001](001-Pin-GitHub-Actions-By-Sha.md) | handed on | Every third-party GitHub Action runs from a mutable tag, beside the tokens that publish packages and open pull requests. | 1 |
 | [003](003-Automated-Agent-Updates.md) | open | The update pipeline is built; what it still decides by convention rather than by a stated rule, including a second pin with no detector. | 5 |
 | [005](005-Declare-What-Waiting-Looks-Like.md) | blocked | Declaring what "waiting for a person" looks like in this agent's own output. Waits on Sokar B47 for the field to declare it in. | 1 |
+| [007](007-Fail-Acceptance-When-A-Release-Adds-A-Dialog.md) | blocked | The acceptance run fails when a release adds a first-run dialog. Waits on a Sokar acceptance-kit step. | 1 |
 | [002](002-No-Test-Harness-For-Python-Tooling.md) | open | The Python tools that decide what gets shipped have no tests, and nothing in CI could run one. | 1 |
 | [004](004-Can-Pi-Reach-A-Forge-Subscription.md) | open | Whether this agent reaches a forge subscription at all, and whether brokering holds beyond the one dialect it was proven against. | 3 |
 
