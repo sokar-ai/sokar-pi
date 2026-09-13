@@ -86,7 +86,9 @@ channel first, not in one copy.
   rolled back.
 - **The changelog is part of the change**, written by hand in the same commit. Nothing enforces it
   for now: the check was removed on 2026-09-13 by the operator's decision, and requiring an entry
-  returns with Sokar B55.
+  returns with Sokar B55. An entry goes into the existing section of its kind under `[Unreleased]`,
+  never under a new heading of the same kind - the Claude Code adapter's changelog grew three
+  `Changed` that way.
 - **Comments say why, not what.** One-liners in config; in code, the reason a reader would
   otherwise have to reconstruct. No exhaustive prose inlined in source.
 - **A test that passes both with and without the fix proves nothing.** Run it against the broken
