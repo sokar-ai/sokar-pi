@@ -52,6 +52,12 @@ The same text in `sokar`, `sokar-frontend`, the three agent repositories and
   right in two forms, publish one and say why.
 - **Measure before you claim.** "It works" means it was run. "It is not the cause" means the
   counter-test was run too. A finding without a measurement is a guess wearing a fact's clothes.
+- **"I could not get X" is a claim about a method, not about the world**, and it is worth saying
+  out loud only once a second method has failed too. On 2026-09-12 a documentation page was
+  reported here as unreadable and its format as undeterminable; `curl` returns that site's chrome
+  and its article body is loaded afterwards, and a fetch that renders the page answered every
+  question about the format in one call. The first report was true about `curl` and false about
+  the page.
 - **Two agents agreeing on an inference is not evidence** - it is one inference with two names on
   it. Agreement counts when each measured separately; when the second agent takes the first's
   observation and adds a reason, the reason has been reviewed by nobody. On 2026-09-12 two of us
