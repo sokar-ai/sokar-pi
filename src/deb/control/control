@@ -11,6 +11,9 @@ Homepage: https://github.com/sokar-ai/sokar
 # The native binary links against both; jdeb does not read it to find out. NativeLinkageCheck
 # holds these floors to the binary.
 Depends: sokar, libc6 (>= [[package.glibc.floor]]), zlib1g (>= 1:[[package.zlib.floor]])
+# What the setup script and Tasks1.Installable() list: every package providing it is an agent a
+# person can choose. The name is Sokar's, settled in the channel on 2026-09-18 (QF19).
+Provides: sokar-agent
 Description: [[description]] [[agent.cli.version]]
  Installs into /usr/libexec/sokar/agents, where the sokar binary looks for
  agents. Nothing needs to be registered: sokar scans that directory and asks

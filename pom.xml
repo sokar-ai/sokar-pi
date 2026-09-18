@@ -441,6 +441,10 @@
                                 <require>libc.so.6(GLIBC_${package.glibc.floor})(64bit)</require>
                                 <require>libz.so.1(ZLIB_${package.zlib.floor})(64bit)</require>
                             </requires>
+                            <!-- As the deb: what the setup script lists as a choosable agent. -->
+                            <provides>
+                                <provide>sokar-agent</provide>
+                            </provides>
                             <signature>
                                 <skip>${rpm.sign.skip}</skip>
                             </signature>
