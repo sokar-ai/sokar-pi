@@ -261,10 +261,11 @@ image:
   base_image: "ubuntu:24.04"
 EOF
 
+# --repository: Sokar never picks one, even for a project that has only its own.
 # --clearance deny: an acceptance run must never raise a prompt on somebody's desktop and
 # then wait for it.
 START_LOG="$WORK/start.log"
-(cd "$WORK" && timeout 900 sokar task start --agent pi \
+(cd "$WORK" && timeout 900 sokar task start --repository "$PROJECT" --agent pi \
     --detach --clearance deny > "$START_LOG" 2>&1)
 
 CONTAINER="$(grep '^container ' "$START_LOG" | awk '{print $2}')"
