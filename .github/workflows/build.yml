@@ -93,8 +93,10 @@ jobs:
         run: |
           set -eu
           tries=0
+          # -L: Artifactory answers a file with a redirect to its cloud storage, and without it the
+          # body is empty - every package then reads as "not indexed" although it is.
           while [ "$tries" -lt 20 ]; do
-              if jf rt curl -s -XGET \
+              if jf rt curl -sL -XGET \
                   "/sokar-dist-deb/dists/snapshots/main/binary-amd64/Packages" 2>/dev/null \
                   | grep -q "Package: sokar-agent-pi"; then
                   echo "  OK    the Debian index lists sokar-agent-pi"
