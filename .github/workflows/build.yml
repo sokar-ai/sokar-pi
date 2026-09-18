@@ -36,8 +36,9 @@ jobs:
         run: ./mvnw -B -s settings.xml verify
 
       # The packages are what an operator installs, so a build that has not produced them has not proved.
+      # Not -DskipTests: that also skips NativeLinkageCheck, the one test that needs the binary.
       - name: Native binary and packages
-        run: ./mvnw -B -s settings.xml -Pnative,dist verify -DskipTests
+        run: ./mvnw -B -s settings.xml -Pnative,dist verify
              -Dagent.snapshot.run=${{ github.run_number }}
 
       - uses: actions/upload-artifact@v7

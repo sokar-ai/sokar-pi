@@ -69,6 +69,12 @@
         <!-- On for local and CI builds, off for releases, where the key exists. -->
         <rpm.sign.skip>true</rpm.sign.skip>
 
+        <!-- The highest symbol versions the native binary needs, measured with readelf on
+             2026-09-18. Both packages declare them, and NativeLinkageCheck fails the dist build
+             when the binary needs more. -->
+        <package.glibc.floor>2.34</package.glibc.floor>
+        <package.zlib.floor>1.2.2</package.zlib.floor>
+
         <!-- The agent is a binary, not a library. Nobody resolves this from Maven. -->
         <maven.deploy.skip>true</maven.deploy.skip>
     </properties>
@@ -304,6 +310,34 @@
                         </executions>
                     </plugin>
 
+                    <!-- Before the packages, and declared first because both bind to verify: the
+                         binary is checked against what they declare before anything is packed. -->
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <version>${maven-failsafe-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>native-linkage</id>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                                <configuration>
+                                    <includes>
+                                        <include>**/NativeLinkageCheck.java</include>
+                                    </includes>
+                                    <systemPropertyVariables>
+                                        <sokar.native.binary>${project.build.directory}/${project.artifactId}</sokar.native.binary>
+                                        <package.glibc.floor>${package.glibc.floor}</package.glibc.floor>
+                                        <package.zlib.floor>${package.zlib.floor}</package.zlib.floor>
+                                    </systemPropertyVariables>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
                     <plugin>
                         <groupId>org.vafer</groupId>
                         <artifactId>jdeb</artifactId>
@@ -402,6 +436,9 @@
                             <packager>fuin.org</packager>
                             <requires>
                                 <require>sokar</require>
+                                <!-- The names rpmbuild itself generates for these libraries. -->
+                                <require>libc.so.6(GLIBC_${package.glibc.floor})(64bit)</require>
+                                <require>libz.so.1(ZLIB_${package.zlib.floor})(64bit)</require>
                             </requires>
                             <signature>
                                 <skip>${rpm.sign.skip}</skip>
