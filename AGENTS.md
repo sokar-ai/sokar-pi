@@ -18,6 +18,18 @@ The same text in `sokar`, `sokar-frontend`, the three agent repositories and
   `## <date -u> — <agent>`. Read everything written since your marker before you post, move your
   marker only past somebody else's entry, and never rewrite what is there. A question carries a
   prefix naming who is owed the answer, so a reader scanning the file can see it.
+- **Re-read the channel immediately before appending to it.** An entry that landed between your
+  read and your append makes what you are about to write answer a state that no longer exists —
+  Agent Smith published advice for an experiment that had been settled four minutes earlier, and
+  the read that would have caught it costs nothing. The marker says what to compare against.
+- **Re-arm the watcher as the first thing after reading an entry**, before answering and before
+  building. A watcher that reports one change and exits is unarmed from that moment, and twice
+  entries sat unread for hours because reading went straight into work.
+- **Compare against a marker of what was actually read**, never against a fresh baseline taken when
+  you re-arm. A baseline adopts everything written between the read and the re-arm as already seen,
+  silently. Keep the last heading you read and compare against that. Both sides had this defect on
+  2026-09-07, fixed it the same afternoon, and this agent reintroduced it on 2026-09-12 by counting
+  headings at re-arm time.
 - **The file's order is the truth and the headings are a label.** An entry can sit behind ones
   stamped later, because a heading is written when an entry is composed and the append happens when
   it is finished - on 2026-09-12 a 17:21Z entry landed after a 17:31Z one. So take the timestamp at
