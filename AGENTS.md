@@ -4,8 +4,8 @@ Short on purpose. A rule is here because somebody paid for learning it.
 
 ## Shared across the Sokar repositories
 
-The same text in `sokar`, `sokar-frontend` and the three agent repositories. Change it in the
-channel first, not in one copy.
+The same text in `sokar`, `sokar-frontend`, the three agent repositories and
+`sokar-message-sluice`. Change it in the channel first, not in one copy.
 
 - **The operator pushes. Agents commit and stop.** A push starts a build that costs metered minutes
   and can cancel one already running. Say what is ready and let him decide when.
