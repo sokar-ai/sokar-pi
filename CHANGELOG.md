@@ -20,6 +20,7 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ### Security
 
+- Pi no longer asks for a newer version at start inside a task; the check could only fail there.
 - The acceptance suite no longer puts the test credential on a command line; the pattern reaches `grep` on a file descriptor.
 - The check that no log holds the credential also searches with line breaks removed, so a value split across a newline is found rather than reported as absent.
 - The acceptance run passes the model name to the container as data rather than inside a shell command.

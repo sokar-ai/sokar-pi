@@ -12,6 +12,7 @@ rather than guessed.
 
 | Date | What was decided |
 |---|---|
+| 2026-09-18 | [Pi does not check for a newer version in a task](#pi-does-not-check-for-a-newer-version-in-a-task) - the check could only fail, and never installed anything |
 | 2026-09-13 | [The changelog check is removed, not replaced](#the-changelog-check-is-removed-not-replaced) - requiring an entry returns with Sokar B55, on logchange |
 | 2026-09-13 | [`build-pi-tree.sh` stays a shell script](#build-pi-treesh-stays-a-shell-script) - it orchestrates podman and npm, and Java would be the same calls in more lines |
 | 2026-09-12 | [The bill generator is installed from its own lockfile, not resolved at build time](#the-bill-generator-is-installed-from-its-own-lockfile-not-resolved-at-build-time) - and neither it nor npm's cache is shipped any more |
@@ -19,6 +20,25 @@ rather than guessed.
 | 2026-09-05 | [Three projects, two names](#three-projects-two-names) - the confusion that cost real work until 2026-09-05 |
 | 2026-09-04 | [The endpoint is set by a file, not a variable](#the-endpoint-is-set-by-a-file-not-a-variable) - why an agent declares what shape of endpoint it can address |
 | 2026-09-04 | [What was actually proven about brokering this agent](#what-was-actually-proven-about-brokering-this-agent) - which transport, which credential kind, against what |
+
+## Pi does not check for a newer version in a task
+
+**Decided 2026-09-18 by the operator**, after Claude Code was found updating itself inside a task.
+
+**Read in the pinned 0.85.0, not run:** at start, Pi asks `https://pi.dev/api/latest-version` and
+at most shows *"Update Available"* with the command to run. It installs nothing by itself. `pi update`
+would need pi.dev and the npm registry, and this definition allows no host but the provider's, so
+in a task the check can only fail.
+
+**How it is stopped:** the launcher `/usr/local/bin/pi` exports `PI_SKIP_VERSION_CHECK=1` before it
+starts Pi. Pi has no setting for it, only the variable. Not `PI_OFFLINE`, which also switches off
+other things Pi fetches.
+
+**What is not covered:** `pi update` itself has no switch. What keeps it from changing the tree is
+that the task reaches neither host.
+
+**What would change it:** a Pi release that installs updates by itself, which the weekly update job
+would have to catch before it is published.
 
 ## The changelog check is removed, not replaced
 

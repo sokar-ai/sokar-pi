@@ -2,6 +2,9 @@ package org.fuin.sokar.agent.impl.pi;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import org.fuin.sokar.agent.api.Agent;
 import org.fuin.sokar.agent.api.AgentRegistry;
 import org.fuin.sokar.agent.api.RunRequest;
@@ -47,5 +50,20 @@ class PiAgentTest {
         assertThat(agent.headlessCommand(
                 new RunRequest("carry on", null, null, "01a07a41", false, false)))
                 .containsExactly("pi", "--no-approve", "--session", "01a07a41", "carry on");
+    }
+
+    @Test
+    void startsPiWithoutAVersionCheck() throws IOException {
+
+        // Pi asks pi.dev for its latest version at start and shows a notice; it installs nothing.
+        // A task cannot reach pi.dev, so the request could only fail. Set in the launcher, before
+        // the exec, because Pi has no setting for it - only the variable.
+        final String definition;
+        try (InputStream in = PiAgentTest.class.getClassLoader().getResourceAsStream("agent/pi.yaml")) {
+            assertThat(in).isNotNull();
+            definition = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        }
+
+        assertThat(definition).contains("#!/bin/sh\\\\nexport PI_SKIP_VERSION_CHECK=1\\\\nexec /opt/node/bin/node ");
     }
 }
