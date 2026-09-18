@@ -5,7 +5,6 @@ identity, not sequence.
 
 | # | Status | Blocked by | What it covers | Open questions |
 |---|---|---|---|---|
-| [014](014-Declare-What-The-Binary-Links-Against.md) | in progress | — | The packages declare the glibc and zlib the native binary needs. | 0 |
 | [006](006-Check-What-Pi-Asks-At-First-Run.md) | open | — | Whether a fresh task shows anything besides the trust question before Pi starts work. Never checked. | 1 |
 | [013](013-The-Built-Runtime-Is-Never-Asked-In-CI.md) | open | — | The built Node runtime's version is never asked in CI, because the tree does not exist yet when the check runs. | 1 |
 | [010](010-Replace-The-Build-Time-Python-Tools.md) | blocked | Sokar B53 | The Python tool every package build runs, replaced by the tool Sokar publishes. | 0 |

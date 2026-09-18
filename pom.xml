@@ -71,7 +71,8 @@
 
         <!-- The highest symbol versions the native binary needs, measured with readelf on
              2026-09-18. Both packages declare them, and NativeLinkageCheck fails the dist build
-             when the binary needs more. -->
+             when the binary needs more. Installed with them on Ubuntu and Fedora by the
+             acceptance run of the same day. -->
         <package.glibc.floor>2.34</package.glibc.floor>
         <package.zlib.floor>1.2.2</package.zlib.floor>
 
