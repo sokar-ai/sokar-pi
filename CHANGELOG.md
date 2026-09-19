@@ -16,6 +16,7 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ### Changed
 
+- The acceptance suite makes its project by following a local repository and names it on every task start; its cleanup asks Sokar to remove the project instead of deleting Sokar's directories.
 - Every task the acceptance suite starts names its repository, which Sokar now requires.
 - The pin check is a unit test instead of a Python script: the definition, the pom, `package.json` and the lockfile must name one version, and the Node runtime must not be overridden.
 

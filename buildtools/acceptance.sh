@@ -40,14 +40,13 @@ WORK="$(mktemp -d)"
 PROJECT="acceptance-$$"
 CONTAINER=""
 
+# Sokar removes what it built for the project - containers, image, mirrors, clone - and with
+# --force that succeeds for a project a failed run never got to follow. Nothing here deletes
+# Sokar's own directories by path.
 cleanup() {
-    [ -n "$CONTAINER" ] && podman rm -f "$CONTAINER" >/dev/null 2>&1
-    podman rmi -f "sokar/$PROJECT" >/dev/null 2>&1
+    sokar project unfollow "$PROJECT" --force >/dev/null 2>&1
     sokar vault unlock --forget >/dev/null 2>&1
-    rm -rf "$WORK" \
-           "${XDG_DATA_HOME:-$HOME/.local/share}/sokar/build/$PROJECT" \
-           "${XDG_DATA_HOME:-$HOME/.local/share}/sokar/mirrors/$PROJECT.git" \
-           "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/sokar/sokar-$PROJECT-"*
+    rm -rf "$WORK"
     :
 }
 trap cleanup EXIT
@@ -261,11 +260,23 @@ image:
   base_image: "ubuntu:24.04"
 EOF
 
+# A project exists by being followed. A local repository, not signed: this run tests the agent,
+# not the verification, and a rented machine has no forge to push to.
+git -C "$WORK" init -q
+git -C "$WORK" add project.yml
+git -C "$WORK" -c user.name=acceptance -c user.email=acceptance@localhost commit -qm "project"
+if ! sokar project follow "$PROJECT" "$WORK" --unverified > "$WORK/follow.log" 2>&1; then
+    fail "the project could not be followed"
+    tail -8 "$WORK/follow.log" | while read -r line; do info "$line"; done
+    echo; echo "== $FAILURES check(s) failed =="; exit 1
+fi
+pass "the project is followed"
+
 # --repository: Sokar never picks one, even for a project that has only its own.
 # --clearance deny: an acceptance run must never raise a prompt on somebody's desktop and
 # then wait for it.
 START_LOG="$WORK/start.log"
-(cd "$WORK" && timeout 900 sokar task start --repository "$PROJECT" --agent pi \
+(timeout 900 sokar task start --project "$PROJECT" --repository "$PROJECT" --agent pi \
     --detach --clearance deny > "$START_LOG" 2>&1)
 
 CONTAINER="$(grep '^container ' "$START_LOG" | awk '{print $2}')"
