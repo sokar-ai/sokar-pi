@@ -1,4 +1,4 @@
-# 012 — Turn the acceptance script into scenarios on acceptance-kit steps
+# PI12 — Turn the acceptance script into scenarios on acceptance-kit steps
 
 **Priority:** 2
 **Opened:** 2026-09-13
@@ -11,7 +11,7 @@
 published package on a rented machine. The Cucumber half of the same run already uses the kit. The
 shell half becomes scenarios on kit steps, so one check is written once for three agents.
 
-Issue 007 (a release that adds a first-run dialog) is the first scenario of this kind.
+PI07 (a release that adds a first-run dialog) is the first scenario of this kind.
 
 ## What would close it
 

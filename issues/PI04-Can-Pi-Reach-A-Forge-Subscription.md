@@ -1,4 +1,4 @@
-# 004 — Can Pi reach a forge subscription, and does brokering hold beyond one dialect
+# PI04 — Can Pi reach a forge subscription, and does brokering hold beyond one dialect
 
 **Priority:** 3
 **Opened:** 2026-09-12

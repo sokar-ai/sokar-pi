@@ -1,4 +1,4 @@
-# 011 — Replace the update pipeline's Python tools with Sokar's shared tool
+# PI11 — Replace the update pipeline's Python tools with Sokar's shared tool
 
 **Priority:** 1
 **Opened:** 2026-09-13
@@ -11,7 +11,7 @@
 already drifted between the three agent repositories; the bill comparison has not. They are replaced
 by the tool Sokar publishes, with this agent's npm dist-tag and lockfile update as configuration.
 
-Whatever issue 003 settles about the update rules applies to the replacement unchanged.
+Whatever PI03 settles about the update rules applies to the replacement unchanged.
 
 ## What would close it
 

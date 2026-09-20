@@ -64,7 +64,7 @@ bill generator inside a pinned builder container through podman, validates three
 and packs the tree. Every step is a process call; a Java version would make the same calls with more
 lines and hide them behind a process API. What it must not lose is its input guards.
 
-**Its regression matrix**, run by hand on 2026-09-12 and carried over from the retired issue 002.
+**Its regression matrix**, run by hand on 2026-09-12 and carried over from the retired issue about the Python tooling having no test harness.
 Each of these must be refused with exit 2, executing nothing:
 
     NODE_VERSION='22.20.0; touch /tmp/pwned'

@@ -1,4 +1,4 @@
-# 013 — The built Node runtime's version is never asked in CI
+# PI13 — The built Node runtime's version is never asked in CI
 
 **Priority:** 2
 **Opened:** 2026-09-13

@@ -1,4 +1,4 @@
-# 008 — Declare where this agent's session id is
+# PI08 — Declare where this agent's session id is
 
 **Priority:** 3
 **Opened:** 2026-09-13

@@ -1,4 +1,4 @@
-# 006 — Check what Pi asks at first run inside a task
+# PI06 — Check what Pi asks at first run inside a task
 
 **Priority:** 1
 **Opened:** 2026-09-13

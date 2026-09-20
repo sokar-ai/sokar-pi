@@ -4,20 +4,25 @@ Short on purpose. A rule is here because somebody paid for learning it.
 
 ## Shared across the Sokar repositories
 
-The same text in `sokar`, `sokar-frontend`, the three agent repositories and
-`sokar-message-sluice`. Change it in the channel first, not in one copy.
+The same text in every repository `project.yml` names. Change it in the channel first, not in
+one copy.
 
 - **The operator pushes. Agents commit and stop.** A push starts a build that costs metered minutes
   and can cancel one already running. Say what is ready and let him decide when.
 - **Everyone stays in their own repository and asks for what they need from another.** Ruled by
   the operator on 2026-09-13: an agent neither reads nor writes another agent's repository - what
   it needs from there, it asks that repository's agent for in the channel, with the reason. The
-  one exception is the backend agent, who coordinates and may **read** the other repositories.
+  one exception is the coordinating agent, who may **read** the other repositories. Reading does
+  not replace asking: a file shows what is the case, and only the agent who wrote it knows why.
   **Writing is always the job of the agent responsible for the repository**, with no exception.
-- **The channel is append-only.** One heading per entry,
-  `## <date -u> — <agent>`. Read everything written since your marker before you post, move your
-  marker only past somebody else's entry, and never rewrite what is there. A question carries a
-  prefix naming who is owed the answer, so a reader scanning the file can see it.
+- **The channel is append-only.** An entry begins with `## <UTC timestamp> — <agent>`. Headings
+  inside an entry are free; scan for entries by the timestamp, never by `##` alone. Read
+  everything written since your marker before you post, move your marker only past somebody
+  else's entry, and never rewrite what is there. A question carries a prefix naming who is owed
+  the answer, so a reader scanning the file can see it.
+- **When quoting a document that has headings, indent it four spaces rather than fencing it.**
+  A fence hides them from a renderer and not from a scanner, and this file is append-only, so
+  what a fence lets through cannot be taken out again.
 - **Re-read the channel immediately before appending to it.** An entry that landed between your
   read and your append makes what you are about to write answer a state that no longer exists —
   Agent Smith published advice for an experiment that had been settled four minutes earlier, and
@@ -50,8 +55,13 @@ The same text in `sokar`, `sokar-frontend`, the three agent repositories and
   work it interrupts, so the person whose run it killed cannot find out what happened.
 - **Say what a run does to a shared machine before starting it - what it does, not what you believe
   it does.** Check first. A confident wrong answer costs somebody else an afternoon.
-- **Link to a requirement by its number and to the index, never to its file.** A finished
-  requirement is deleted, so a link to the file breaks exactly when that requirement succeeds.
+- **Link to a requirement by its number and to the index, never to its file.** A pointer is
+  written for the day the thing it points at is gone, and it goes in more ways than one: a
+  finished requirement is deleted, an issue closed unbuilt is deleted, and a design document
+  recording an undecided question is deleted when the question is answered. A link to a file
+  breaks on all three; a link to the index breaks on none. **Where a repository can enforce
+  this with a test, it does** - three repositories found this defect by accident on 2026-09-20
+  and the fourth will not be so lucky.
 - **From "both are valid" it does not follow that both should exist.** Two indexes, two markers,
   two manifests, the same skills in two repositories - every expensive defect of 2026-09-12 had
   that shape, and not one of them was a wrong fact. They were correct facts with one inference too
@@ -86,8 +96,13 @@ The same text in `sokar`, `sokar-frontend`, the three agent repositories and
 
 ## Work in this repository
 
-- **Every open thing is an issue**, in `issues/`, named `NNN-Short-Title.md`, numbered in order and
-  carrying a priority. Not a TODO in the code, not a note in a commit message.
+- **Every open thing is an issue**, in `issues/`, named `PInn-Short-Title.md`, numbered in
+  order and carrying a priority. Not a TODO in the code, not a note in a commit message.
+- **The letter says which set a number belongs to**, so a bare `PI07` is unambiguous in
+  every repository at once and an ordinary number can never look like a citation. Decided by
+  the operator on 2026-09-20: `B`, `A`, `F` and `P` are Sokar's own sets, `PJ` the project,
+  `SL` the sluice, `MX` the Matrix transport, and `CC`, `PI` and `OM` the three agents. The
+  shape is `[A-Z]{1,2}\d{2}`, and `IssueCitationTest` keys on it.
 - **`issues/README.md` is the index**, and it is part of the change that adds or closes an issue.
   It opens with a table - number (linked), status, what blocks it, what it covers, how many
   questions are still open - ordered by priority rather than by number, so the top row is what
@@ -98,6 +113,13 @@ The same text in `sokar`, `sokar-frontend`, the three agent repositories and
   taking the decision.
 - **A finished issue is deleted, row and all.** Not kept with a status saying it is done, not moved
   to a section of what used to be here: the index holds what is still to do and nothing else.
+- **A retired number leaves the documents with it.** In the same change that deletes an issue, the
+  numbers naming it go too, and what the sentence needed is written instead: *the retired issue
+  about the Python tooling having no test harness*, rather than its bare number. That is what makes
+  a citation
+  here always a pointer, so `IssueCitationTest` can check that every number named is an issue that
+  exists; a repository that keeps numbers as history cannot run that check. Decided 2026-09-20,
+  after an open issue was found naming one retired eight days earlier.
 - **Before deleting it, move what outlives it.** The test is whether the knowledge is about more
   than that one issue - a measurement, a distinction the contract makes, something that was built
   wrong once. It goes to `doc/` if a person using the product needs it, to `AGENTS.md` if it is
@@ -126,7 +148,7 @@ The same text in `sokar`, `sokar-frontend`, the three agent repositories and
   What stays: `mvnw`, the Maven wrapper, which is how a pinned Maven arrives before any Java tooling
   can run; and `buildtools/build-pi-tree.sh`, which orchestrates podman and npm in a pinned container
   - the reason and its guard matrix are in `doc/decisions.md`. The Python tools and `acceptance.sh`
-  are on their way out - issues 010 to 012.
+  are on their way out - PI10 to PI12.
 
 ### How to get them
 

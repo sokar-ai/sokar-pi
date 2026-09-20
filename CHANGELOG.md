@@ -16,6 +16,7 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ### Changed
 
+- Issues carry their repository's letter: `PI07` rather than `007`, so a number says which set it belongs to.
 - The acceptance suite makes its project by following a local repository and names it on every task start; its cleanup asks Sokar to remove the project instead of deleting Sokar's directories.
 - Every task the acceptance suite starts names its repository, which Sokar now requires.
 - The pin check is a unit test instead of a Python script: the definition, the pom, `package.json` and the lockfile must name one version, and the Node runtime must not be overridden.
@@ -33,6 +34,8 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ### Added
 
+- The build refuses an issue number that names no issue, so a citation in prose cannot outlive the issue it points at.
+- The build refuses a link to an issue file from anywhere but the index, so a pointer cannot outlive the issue it names.
 - The packages provide `sokar-agent`, so the setup script and the daemon list this agent as one a person can choose.
 - An extension that records whether Pi is working, idle or waiting for a person, written into the container and read by the host.
 - The Pi adapter: definition, credential handling, headless commands. Its log is shown as Pi writes it; there is no formatter for it yet.

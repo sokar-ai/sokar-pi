@@ -1,4 +1,4 @@
-# 003 — Automated agent updates: what is still undecided
+# PI03 — Automated agent updates: what is still undecided
 
 **Priority:** 2
 **Opened:** 2026-09-12

@@ -1,4 +1,4 @@
-# 001 — Pin GitHub Actions by commit SHA
+# PI01 — Pin GitHub Actions by commit SHA
 
 **Priority:** 1
 **Opened:** 2026-09-12
