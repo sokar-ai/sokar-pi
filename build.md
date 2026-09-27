@@ -211,5 +211,12 @@ suite - typed into the vault at a terminal, never on a command line - and are **
 passed, without them. There is no glue class here: every step is the kit's, which is what keeps
 this repository free of test code that knows about ssh.
 
+**A scenario's vault passphrase must be a string no terminal prints.** Each scenario that needs a
+vault brings its own - a temporary file and a passphrase the scenario states - and the kit then checks
+the passphrase never appears on screen. The rented machine's account is named `acceptance`, and
+Ubuntu 26.04's shell integration prints `user=acceptance` in its escape sequences, so a passphrase of
+`acceptance` reads as echoed. That failed every such scenario on Hetzner on 2026-09-27 while the VMs,
+whose account is `claude`, stayed green.
+
 In CI the same suite runs from the runner against the rented machine on every push to `main`.
 A run that produces no scenarios fails rather than passing quietly.
