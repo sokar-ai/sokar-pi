@@ -9,6 +9,20 @@ one copy.
 
 - **The operator pushes. Agents commit and stop.** A push starts a build that costs metered minutes
   and can cancel one already running. Say what is ready and let him decide when.
+- **A rewrite is cheap only while the commits are yours alone. Ask the remote first.**
+  *The operator pushes. Agents commit and stop* - and stop includes stop amending, stop squashing,
+  stop rebasing. A commit stops being yours the moment he takes it, and nothing tells you when that
+  happened except asking:
+
+      git ls-remote origin refs/heads/main            the tip, and it cannot be stale
+      git merge-base --is-ancestor <commit> <tip>     whether the commit is already in it
+
+  `origin/main` and `@{u}` are caches and answer a question about your last fetch. On 2026-09-27 an
+  amend after a push put two commits with one parent and one subject on two sides, and the operator
+  met it as a merge conflict. **The repair is never a force push** - reset onto the remote's commit
+  and re-apply as a new one, because the side that pushes is the side whose history is real. That
+  same reset is also the only safe way to squash, which is why the cure and the correct method are
+  one operation.
 - **Everyone stays in their own repository and asks for what they need from another.** Ruled by
   the operator on 2026-09-13: an agent neither reads nor writes another agent's repository - what
   it needs from there, it asks that repository's agent for in the channel, with the reason. The
@@ -142,6 +156,9 @@ one copy.
   `Changed` that way.
 - **Comments say why, not what.** One-liners in config; in code, the reason a reader would
   otherwise have to reconstruct. No exhaustive prose inlined in source.
+- **A suite result is reported with its skips named, never as a count.** `Tests run: 41, Skipped: 1`
+  was reported four times as *41 tests green* on 2026-09-27, and the skip was `sokar-pi`'s check that
+  never runs at all. The person most likely to read past it is whoever knows why it skips.
 - **A test that passes both with and without the fix proves nothing.** Run it against the broken
   version before trusting it.
 - **The build is Java and Maven, and a file that is not says why it stays** (Sokar B53, 2026-09-13).
