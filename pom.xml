@@ -49,7 +49,7 @@
         <!-- The Pi version this package ships. Filtered into pi.yaml, and carried in the
              package description so 'dpkg -s' and 'rpm -qi' answer it. Bumping it means
              regenerating the lockfile beside package.json. Not part of the package version. -->
-        <agent.cli.version>0.85.0</agent.cli.version>
+        <agent.cli.version>0.87.1</agent.cli.version>
 
         <!-- The published contract this builds against. Nothing else of Sokar's is on the
              classpath, and no checkout of the sokar repository is needed to build here. -->
