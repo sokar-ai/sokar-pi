@@ -16,6 +16,7 @@ identity, not sequence.
 | [PI07](PI07-Fail-Acceptance-When-A-Release-Adds-A-Dialog.md) | blocked | Sokar B52 | The acceptance run fails when a release adds a first-run dialog. | 1 |
 | [PI08](PI08-Declare-Where-The-Session-Id-Is.md) | blocked | Sokar B46 | Declaring where this agent's session id is, so a task that comes back continues its conversation. | 2 |
 | [PI04](PI04-Can-Pi-Reach-A-Forge-Subscription.md) | open | — | Whether this agent reaches a forge subscription at all, and whether brokering holds beyond the one dialect it was proven against. | 3 |
+| [PI15](PI15-A-Test-That-Never-Runs-In-The-Pipeline.md) | open | — | One check is skipped in every run the pipeline makes: the tree it needs is built a phase after surefire. | 1 |
 
 **Status** means: `open` - nobody is on it. `in progress` - somebody is. `handed on` - the work
 belongs to another repository and this row tracks what has to change here afterwards. `blocked` -
