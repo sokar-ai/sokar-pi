@@ -15,6 +15,8 @@
 set -euo pipefail
 
 MODULE="$(cd "$(dirname "$0")/.." && pwd)"
+# Sokar's release tool, on the classpath Maven passes as the only argument; it records Node below.
+RELEASE_CLASSPATH="${1:-}"
 TARGET="$MODULE/target/tree"
 NODE_VERSION="${NODE_VERSION:-22.20.0}"
 NODE_SHA256="${NODE_SHA256:-eeaccb0378b79406f2208e8b37a62479c70595e20be6b659125eb77dd1ab2a29}"
@@ -111,23 +113,12 @@ podman run --rm --userns=keep-id -v "$TARGET:/out:z" "$BUILDER" sh -c '
 # Node is in the tree and is not an npm package, so nothing above can have listed it. Added
 # with the digest this script already verifies, rather than a digest computed after the fact -
 # what is recorded is what was checked.
-python3 - "$TARGET/pi/sbom.cdx.json" "$NODE_VERSION" "$NODE_SHA256" <<'PYTHON'
-import json, sys
-path, version, digest = sys.argv[1], sys.argv[2], sys.argv[3]
-with open(path) as handle:
-    bom = json.load(handle)
-bom.setdefault("components", []).append({
-    "type": "application",
-    "name": "node",
-    "version": version,
-    "purl": f"pkg:generic/node@{version}?download_url=https://nodejs.org/dist/v{version}/"
-            f"node-v{version}-linux-x64.tar.gz",
-    "licenses": [{"license": {"id": "MIT"}}],
-    "hashes": [{"alg": "SHA-256", "content": digest}],
-})
-with open(path, "w") as handle:
-    json.dump(bom, handle, indent=2)
-PYTHON
+[ -n "$RELEASE_CLASSPATH" ] \
+    || refuse "no classpath for Sokar's release tool - run this from Maven, which passes it"
+"${JAVA_CMD:-java}" -cp "$RELEASE_CLASSPATH" org.fuin.sokar.release.Main add-component \
+    "$TARGET/pi/sbom.cdx.json" --name node --version "$NODE_VERSION" \
+    --url "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-x64.tar.gz" \
+    --sha256 "$NODE_SHA256" --license MIT
 
 cp "$TARGET/pi/sbom.cdx.json" "$MODULE/target/pi-tree-sbom.cdx.json"
 

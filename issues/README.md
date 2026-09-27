@@ -5,7 +5,6 @@ identity, not sequence.
 
 | # | Status | Blocked by | What it covers | Open questions |
 |---|---|---|---|---|
-| [PI17](PI17-The-Tree-Build-Still-Needs-Python.md) | open | — | The tree build appends Node to the bill with inline Python, so the package build still needs `python3`. | 1 |
 | [PI16](PI16-Check-The-Code-Against-The-House-Skills.md) | open | — | The Java read against the house skills, which a second author's list catches where the tests do not. | 0 |
 | [PI06](PI06-Check-What-Pi-Asks-At-First-Run.md) | open | — | Whether a fresh task shows anything besides the trust question before Pi starts work. Never checked. | 1 |
 | [PI13](PI13-The-Built-Runtime-Is-Never-Asked-In-CI.md) | open | — | The built Node runtime's version is never asked in CI, because the tree does not exist yet when the check runs. | 1 |

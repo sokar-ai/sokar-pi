@@ -170,9 +170,10 @@ one copy.
 - **The build is Java and Maven, and a file that is not says why it stays** (Sokar B53, 2026-09-13).
   What stays: `mvnw`, the Maven wrapper, which is how a pinned Maven arrives before any Java tooling
   can run; and `buildtools/build-pi-tree.sh`, which orchestrates podman and npm in a pinned container
-  - the reason and its guard matrix are in `doc/decisions.md`. It still runs one inline Python
-  step, which PI17 takes out. The release tooling is Sokar's `sokar-release`, called from the pom
-  and the workflows, and the acceptance run is the scenarios in `src/acceptance`.
+  - the reason and its guard matrix are in `doc/decisions.md`. It records Node in the tree's bill
+  through Sokar's `sokar-release`, whose classpath the pom passes as its argument. The release
+  tooling is that tool, called from the pom and the workflows, and the acceptance run is the
+  scenarios in `src/acceptance`.
 
 ### How to get them
 

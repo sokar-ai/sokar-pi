@@ -272,6 +272,15 @@
                                 </goals>
                                 <configuration>
                                     <executable>${project.basedir}/buildtools/build-pi-tree.sh</executable>
+                                    <!-- The release tool's classpath, for recording Node in the
+                                         tree's bill; a plugin dependency, as for the merge. -->
+                                    <includePluginDependencies>true</includePluginDependencies>
+                                    <arguments>
+                                        <classpath/>
+                                    </arguments>
+                                    <environmentVariables>
+                                        <JAVA_CMD>${java.home}/bin/java</JAVA_CMD>
+                                    </environmentVariables>
                                 </configuration>
                             </execution>
                             <execution>
