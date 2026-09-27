@@ -118,7 +118,10 @@ jobs:
               target/sokar-agent-pi.cdx.json \
               https://fuinorg.jfrog.io/artifactory/sokar-dist-deb/pool/main/s/sokar-agent-pi/sokar-agent-pi.cdx.json \
               --expect-moved pi-coding-agent \
+              > target/bill-change.txt 2>&1 \
               || echo "STOP=third-party components or licenses changed" >> "$GITHUB_ENV"
+          # In a file as well, so the pull request can carry it rather than only the run log.
+          cat target/bill-change.txt
 
       - name: The major version moved
         if: steps.plan.outputs.proceed == 'yes' && steps.detect.outputs.major == 'moved'
@@ -212,6 +215,16 @@ jobs:
             if [ -n "${STOP:-}" ]; then
                 echo "**This is not ready to publish: $STOP.**"
                 echo "Automation is not allowed to decide this one - see the run log above."
+                if [ -s target/bill-change.txt ]; then
+                    echo
+                    echo "<details><summary>What changed in the shipped tree</summary>"
+                    echo
+                    echo '```'
+                    cat target/bill-change.txt
+                    echo '```'
+                    echo
+                    echo "</details>"
+                fi
             else
                 echo "**Green.** Unit suite, the pin check against the published manifest, both"
                 echo "packages, an unchanged third-party component set, and the acceptance suites"

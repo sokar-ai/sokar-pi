@@ -98,6 +98,11 @@ def unreadable(reason: str):
     sys.exit(2)
 
 
+def shown(named: set[str]) -> str:
+    """Renders a component's licences for a report line."""
+    return ", ".join(sorted(named)) or "NO LICENCE DECLARED"
+
+
 def pair_moves(expected: list[str], built: dict[str, dict], published: dict[str, dict],
                added: list[str], removed: list[str]) -> list[tuple[str, str]]:
     """
@@ -166,10 +171,12 @@ def main() -> int:
 
     for old, new in moved:
         print(f"  moved     {published[old].get('name')} "
-              f"{published[old].get('version')} -> {built[new].get('version')}")
-    for label, keys in (("added", added), ("removed", removed)):
+              f"{published[old].get('version')} -> {built[new].get('version')}"
+              f"   {shown(licences(built[new]))}")
+    # The licence goes on the line: an added component's has been compared with nothing.
+    for label, keys, bill in (("added", added, built), ("removed", removed, published)):
         for key in keys:
-            print(f"  {label:9} {key}")
+            print(f"  {label:9} {key}   {shown(licences(bill[key]))}")
     for key in relicensed:
         was = published.get(key) or published[next(old for old, new in moved if new == key)]
         before = ", ".join(sorted(licences(was))) or "none"
