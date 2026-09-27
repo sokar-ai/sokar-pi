@@ -12,8 +12,7 @@ import java.util.stream.Stream;
 /**
  * The repository's own markdown files and issue numbers, for the guards that read them.
  * <p>
- * One walk rather than one per guard: two copies of "which files count" drift, and a guard that
- * silently scans nothing passes forever.
+ * One walk rather than one per guard, because two copies of "which files count" drift.
  */
 final class RepositoryDocuments {
 

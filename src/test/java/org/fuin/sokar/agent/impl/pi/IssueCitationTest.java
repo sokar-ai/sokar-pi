@@ -15,17 +15,8 @@ import org.junit.jupiter.api.Test;
 /**
  * Every issue number a document names is an issue that exists.
  * <p>
- * A link guard cannot see this one: a number written in prose points at nothing once the issue is
- * deleted, and no link breaks.
- * <p>
- * <strong>The letter is what makes this cheap.</strong> While the numbers were three digits the
- * pattern had to find the word "issue" in front of one, and both holes it had were in that word
- * rather than in the number - a capital at the start of a sentence, and emphasis around either.
- * {@code PI07} needs no word, so there is no anchor left to get wrong, and a byte count or an HTTP
- * status can no longer look like a citation.
- * <p>
- * It is sound because this repository takes the number out of the documents in the change that
- * deletes the issue, so a citation that remains is always a pointer and never a record of a moment.
+ * Sound because a retired number leaves the documents with its file, so a citation is always a
+ * pointer. No link breaks when one goes stale, which is why a link guard cannot see this.
  */
 class IssueCitationTest {
 
@@ -49,10 +40,7 @@ class IssueCitationTest {
     @Test
     void findsTheIssuesItChecksAgainst() throws IOException {
 
-        // Both sets, because the two ways of being empty fail in opposite directions: no
-        // documents and everything passes forever, no live issues and every citation is reported
-        // as dangling - a tidy table somebody else acts on. The second was nearly acted on in
-        // another repository on 2026-09-20, from a check keyed on filenames during a rename.
+        // No documents passes forever; no live issues reports every citation as dangling.
         assertThat(RepositoryDocuments.all()).isNotEmpty();
         assertThat(RepositoryDocuments.liveIssues()).isNotEmpty();
     }

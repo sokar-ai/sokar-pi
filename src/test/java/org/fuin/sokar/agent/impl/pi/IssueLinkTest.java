@@ -16,12 +16,8 @@ import org.junit.jupiter.api.Test;
 /**
  * No document but the index links an issue by its file.
  * <p>
- * An issue file is deleted when the issue is finished, so a pointer at one breaks on the day it
- * succeeds - and it breaks the same way when an issue is closed unbuilt, which nobody expects.
- * Three repositories found that defect by accident in one morning on 2026-09-20; this is the guard
- * that keeps it out of this one, because the fourth finding would not have been lucky.
- * <p>
- * The index is the exception: it links files by design and is the thing everything else points at.
+ * An issue file is deleted when the issue is finished or closed unbuilt, so a link to one breaks
+ * then. The index is the exception: linking files is what an index is.
  */
 class IssueLinkTest {
 
@@ -47,8 +43,7 @@ class IssueLinkTest {
     @Test
     void refusesALinkToAnIssueFile() throws IOException {
 
-        // Built from a file that is really there, so renaming an issue cannot leave this passing
-        // against a sample nothing matches any more.
+        // From a file that is really there, so a rename cannot leave this passing on a sample.
         final Path issue = anIssueFile();
         final String document = "Waiting on [the pin](" + INDEX.getParent() + "/" + issue.getFileName() + ").";
 
