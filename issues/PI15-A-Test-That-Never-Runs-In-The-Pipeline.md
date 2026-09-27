@@ -38,5 +38,5 @@ so the class exists here and only here, because only this repository builds a tr
 
 ## Open question
 
-Whether the packaging profile is the right home, given that the Python tools it sits beside are on
-their way out with PI10 and PI11. If the tree build moves, this check moves with it.
+Whether the packaging profile is the right home, now that the step beside it there is Sokar's release
+tool rather than a script of this repository's. If the tree build moves, this check moves with it.

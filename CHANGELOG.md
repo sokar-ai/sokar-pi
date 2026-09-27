@@ -12,10 +12,13 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ### Removed
 
+- The Python release tools and `acceptance.sh`, which had drifted between the three agent repositories.
 - The changelog check in CI; requiring an entry returns later, built on logchange.
 
 ### Changed
 
+- The build and the update job call Sokar's release tool instead of Python: merging the tree's bill, the upstream lookup, the pin move with its relock, and the bill comparison.
+- The acceptance run is the Cucumber scenarios alone; they refuse to run as root, bring a vault of their own, and check that the adapter ships what its bill names and that a live task's broker saw the request.
 - The pull request carries the third-party comparison itself, with each component's licence, rather than leaving it in the run log.
 - Issues carry their repository's letter: `PI07` rather than `007`, so a number says which set it belongs to.
 - The acceptance suite makes its project by following a local repository and names it on every task start; its cleanup asks Sokar to remove the project instead of deleting Sokar's directories.

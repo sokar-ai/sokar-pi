@@ -7,20 +7,24 @@ Feature: A task authenticates without ever holding the credential
   run says what it proved and not more.
 
   Background:
-    Given the environment variable "SOKAR_E2E_OPENROUTER_API_KEY" is set
+    Given the suite runs as an unprivileged user
+    And the environment variable "SOKAR_E2E_OPENROUTER_API_KEY" is set
     And the environment variable "SOKAR_E2E_MODEL" is set
 
   Scenario: a person unlocks the vault and the passphrase is not echoed
-    # On a machine that has no vault yet, this is the run that sets the passphrase.
+    # A vault made for this scenario alone, so the prompt is the first-run one on any machine
+    # and whatever vault the account holds is never touched.
     Given a terminal on the machine
-    When I run "sokar vault unlock"
+    When I run "export SOKAR_VAULT=$(mktemp -d)/vault.bin"
+    And I run "sokar vault unlock"
     Then the terminal shows "Vault passphrase:"
     When I type "sokar-acceptance-passphrase"
     Then the terminal shows "ready$"
     And the terminal does not show "sokar-acceptance-passphrase"
+    When I run "sokar vault unlock --forget && rm -r ${SOKAR_VAULT%/vault.bin}"
 
   Scenario: a person stores the key, and it is echoed nowhere
-    Given the vault is unlocked with the passphrase "sokar-acceptance-passphrase"
+    Given a vault of this scenario's own, unlocked with the passphrase "scenario-vault-passphrase"
     And a terminal on the machine
     When I run "sokar vault put openrouter --type api-key"
     Then the terminal shows "Value for 'openrouter':"
@@ -32,7 +36,7 @@ Feature: A task authenticates without ever holding the credential
     And the terminal does not show the value of "SOKAR_E2E_OPENROUTER_API_KEY"
 
   Scenario: the credential is not recoverable from the vault file
-    Given the vault is unlocked with the passphrase "sokar-acceptance-passphrase"
+    Given a vault of this scenario's own, unlocked with the passphrase "scenario-vault-passphrase"
     And the vault holds the value of "SOKAR_E2E_OPENROUTER_API_KEY" as "openrouter" of kind "api-key"
     When the vault file is read as it lies on disk
     Then it exits zero
@@ -42,7 +46,7 @@ Feature: A task authenticates without ever holding the credential
   Scenario: a person starts a task with the agent, and the model answers through the broker
     # The real credential stays in the vault; the task gets a token minted for it and nothing
     # else. Only a real credential makes the leak searchable, which is why this needs one.
-    Given the vault is unlocked with the passphrase "sokar-acceptance-passphrase"
+    Given a vault of this scenario's own, unlocked with the passphrase "scenario-vault-passphrase"
     And the vault holds the value of "SOKAR_E2E_OPENROUTER_API_KEY" as "openrouter" of kind "api-key"
     And a project called "live" of class "guarded" with a file in it
     And a terminal on the machine
@@ -61,4 +65,24 @@ Feature: A task authenticates without ever holding the credential
     # so a change to that rule fails here with the name shown rather than later with none.
     And the terminal shows "container sokar-live-shell"
     When a script runs "sokar task remove sokar-live-shell --force"
+    Then it exits zero
+
+  @slow
+  Scenario: a task nobody attaches to answers through the broker, and the credential is nowhere in it
+    # What a script sees rather than a person: the prompt goes in as the task's own command, and
+    # the environment, the logs and the broker are asked afterwards rather than looked at. Pi
+    # starts without a provider named; the model argument picks OpenRouter.
+    Given a vault of this scenario's own, unlocked with the passphrase "scenario-vault-passphrase"
+    And the vault holds the value of "SOKAR_E2E_OPENROUTER_API_KEY" as "openrouter" of kind "api-key"
+    And a project called "broker" of class "guarded" with a file in it
+    When a task is started in "broker" for the "pi" agent and left running
+    And the task's container runs:
+      """
+      timeout 240 pi --print --model "${SOKAR_E2E_MODEL}" "Reply with exactly the word SOKARLIVE and nothing else."
+      """
+    Then its output contains "SOKARLIVE"
+    And the task's container environment does not contain the value of "SOKAR_E2E_OPENROUTER_API_KEY"
+    And no log the task left contains the value of "SOKAR_E2E_OPENROUTER_API_KEY"
+    And the task's broker saw a request
+    When a script runs "sokar project unfollow broker --force"
     Then it exits zero

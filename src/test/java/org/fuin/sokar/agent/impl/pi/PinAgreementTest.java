@@ -50,6 +50,9 @@ class PinAgreementTest {
 
     private static final Pattern PINNED = Pattern.compile("<agent\\.cli\\.version>([^<]+)</agent\\.cli\\.version>");
 
+    private static final Pattern RELOCK_IMAGE =
+            Pattern.compile("<sokar\\.release\\.npm\\.image>([^<]+)</sokar\\.release\\.npm\\.image>");
+
     @Test
     void theBuiltDefinitionAgreesWithThePomTheManifestAndTheLockfile() throws IOException {
 
@@ -123,6 +126,25 @@ class PinAgreementTest {
     }
 
     @Test
+    void theUpdateRelocksInTheImageTheTreeIsBuiltIn() throws IOException {
+
+        assertThat(relockImageDisagreements(pom(), script())).isEmpty();
+    }
+
+    @Test
+    void refusesARelockImageThatIsNotTheBuilder() throws IOException {
+
+        // A lockfile resolved by one npm and installed by another is how a tree drifts from its
+        // lockfile. The release tool reads the pom uninterpolated, so the image is written out there
+        // and this is what keeps it the builder's.
+        final String pom = RELOCK_IMAGE.matcher(pom())
+                .replaceFirst("<sokar.release.npm.image>docker.io/library/node:23.0.0-slim</sokar.release.npm.image>");
+
+        assertThat(relockImageDisagreements(pom, script())).singleElement().asString()
+                .contains("node:23.0.0-slim");
+    }
+
+    @Test
     void theBuiltRuntimeReportsThePinnedVersion() throws IOException, InterruptedException {
 
         // Only where a tree has been built. The unit phase runs before the tree is built, so on a
@@ -181,6 +203,25 @@ class PinAgreementTest {
             problems.add("the lockfile resolves " + resolved + ", and npm ci installs the lockfile");
         }
         return problems;
+    }
+
+    /**
+     * Returns every way the image the update relocks in differs from the one the tree is built in.
+     *
+     * @param pom Content of {@code pom.xml}.
+     * @param script Content of {@code build-pi-tree.sh}.
+     * @return One sentence per disagreement; empty when they are the same image.
+     */
+    static List<String> relockImageDisagreements(final String pom, final String script) {
+
+        final Matcher configured = RELOCK_IMAGE.matcher(pom);
+        if (!configured.find()) {
+            return List.of("pom.xml declares no sokar.release.npm.image");
+        }
+        final String builder = "docker.io/library/node:" + reviewedDefault(script, "NODE_VERSION") + "-slim";
+        final String relock = configured.group(1).strip();
+        return relock.equals(builder) ? List.of()
+                : List.of("the update relocks in " + relock + ", build-pi-tree.sh builds in " + builder);
     }
 
     /**

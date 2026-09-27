@@ -153,7 +153,7 @@ jobs:
         run: |
           java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main acceptance \
               --os ${{ matrix.os }} --package sokar-agent-pi \
-              --script buildtools/acceptance.sh --cucumber .
+              --cucumber .
 
       - name: Delete what this run created
         if: always()

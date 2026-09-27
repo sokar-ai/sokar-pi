@@ -5,6 +5,9 @@ Feature: The published package on a clean machine
   operator installs them - and this agent's binary was built in another repository against a
   published contract, so sokar has never heard of it.
 
+  Background:
+    Given the suite runs as an unprivileged user
+
   Scenario: sokar is installed and discovers the agent it was never linked against
     When a script runs "sokar --version"
     Then it exits zero
@@ -34,3 +37,13 @@ Feature: The published package on a clean machine
     # Checked on a machine that installed the package rather than in the build that made it: an
     # update gate diffs this against the published one, and a missing bill breaks it silently.
     Then the bill at "/usr/share/sokar/sbom/sokar-agent-pi.cdx.json" names "sokar-agent-pi-tree"
+
+  Scenario: the adapter ships the Pi its bill names
+    # Two facts written by two different steps of the build. The scope is stripped in a bill, so
+    # the package appears under its bare name, nested in the tree.
+    Then the "pi" agent installs the version the bill at "/usr/share/sokar/sbom/sokar-agent-pi.cdx.json" names for "pi-coding-agent"
+
+  Scenario: an update run installs the version it was asked to test
+    # Set only by the update job, which tests its candidate packages rather than the published ones.
+    Given the environment variable "SOKAR_E2E_EXPECT_CLI" is set
+    Then the "pi" agent installs the version in the environment variable "SOKAR_E2E_EXPECT_CLI"

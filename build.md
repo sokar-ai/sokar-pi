@@ -72,7 +72,7 @@ answerable from the installed adapter rather than from a build log.
 **One sentence per change** - it is a compressed summary of the commits it covers, and
 `git log` is where anyone who wants the reasoning goes.
 
-A version bump is not written by hand: `buildtools/update.py` writes its own line and replaces
+A version bump is not written by hand: the `update` of Sokar's release tool writes its own line and replaces
 the one it wrote last time. Everything else is by hand, and since 2026-09-13 nothing checks for
 it; requiring an entry returns with Sokar B55 - see [`doc/decisions.md`](doc/decisions.md).
 
@@ -80,12 +80,13 @@ it; requiring an entry returns with Sokar B55 - see [`doc/decisions.md`](doc/dec
 
 `.github/workflows/update.yml` runs once a week, on Monday. It asks the npm registry what
 `latest` points at and, if that is not what this module ships, does what a person would:
-`update.py`, rebuild, and prove the result on a real Ubuntu machine and a real Fedora one
+the release tool's `update`, rebuild, and prove the result on a real Ubuntu machine and a real Fedora one
 **before anything is published**.
 
 **A Pi bump is four files, not two**, which is what made this agent the awkward one to automate:
 the npm manifest, the regenerated lockfile, the `agent.cli.version` property, and the changelog.
-`update.py` does all four.
+The tool's `update` does all four, configured from the `sokar.release.*` properties in `pom.xml`;
+`PinAgreementTest` keeps the image it relocks in the one the tree is built in.
 
 **The lockfile is regenerated inside the pinned Node container**, the same one
 `build-pi-tree.sh` installs from, with `npm install --package-lock-only`. A lockfile resolved by
@@ -130,7 +131,7 @@ publish failed.
 
 ## Acceptance
 
-`buildtools/acceptance.sh` is the last step, and the only one that installs what an
+The scenarios in `src/acceptance` are the last step, and the only one that installs what an
 operator installs. Everything before it proves the code is right; this proves the
 **package** is. It runs on a stock Hetzner image that has never seen this project -
 never a prepared snapshot - so it exercises the package repository itself: the
@@ -179,8 +180,11 @@ Run it by hand with `workflow_dispatch`, or locally:
 ```
 HETZNER_API=... HETZNER_SSH="$(cat key)" SOKAR_E2E_OPENROUTER_API_KEY=... \
   java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main acceptance \
-      --os fedora --package sokar-agent-pi --script buildtools/acceptance.sh
+      --os fedora --package sokar-agent-pi --cucumber .
 ```
+
+`--candidate <dir>` in place of `--package` installs packages built locally rather than the
+published ones - `sokar`'s among them, if the directory holds a build of each.
 
 ## What this repository still cannot check
 
@@ -207,6 +211,5 @@ suite - typed into the vault at a terminal, never on a command line - and are **
 passed, without them. There is no glue class here: every step is the kit's, which is what keeps
 this repository free of test code that knows about ssh.
 
-In CI the same suite runs from the runner against the rented machine on every push to `main`,
-beside `buildtools/acceptance.sh` until it has been green there for real; see the comment in
-`.github/workflows/build.yml`. A run that produces no scenarios fails rather than passing quietly.
+In CI the same suite runs from the runner against the rented machine on every push to `main`.
+A run that produces no scenarios fails rather than passing quietly.

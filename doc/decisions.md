@@ -12,6 +12,7 @@ rather than guessed.
 
 | Date | What was decided |
 |---|---|
+| 2026-09-27 | [The release tooling is Sokar's, configured from the pom](#the-release-tooling-is-sokars-configured-from-the-pom) - data beside the pin, the relock image kept equal to the builder's by a test |
 | 2026-09-18 | [Pi does not check for a newer version in a task](#pi-does-not-check-for-a-newer-version-in-a-task) - the check could only fail, and never installed anything |
 | 2026-09-13 | [The changelog check is removed, not replaced](#the-changelog-check-is-removed-not-replaced) - requiring an entry returns with Sokar B55, on logchange |
 | 2026-09-13 | [`build-pi-tree.sh` stays a shell script](#build-pi-treesh-stays-a-shell-script) - it orchestrates podman and npm, and Java would be the same calls in more lines |
@@ -20,6 +21,31 @@ rather than guessed.
 | 2026-09-05 | [Three projects, two names](#three-projects-two-names) - the confusion that cost real work until 2026-09-05 |
 | 2026-09-04 | [The endpoint is set by a file, not a variable](#the-endpoint-is-set-by-a-file-not-a-variable) - why an agent declares what shape of endpoint it can address |
 | 2026-09-04 | [What was actually proven about brokering this agent](#what-was-actually-proven-about-brokering-this-agent) - which transport, which credential kind, against what |
+
+## The release tooling is Sokar's, configured from the pom
+
+**Decided 2026-09-27 with Agent Sokar**, when the shared `sokar-release` replaced the Python tools
+that had been copied into all three agent repositories and had already drifted between them.
+
+**What differs between agents is data**, and it lives in `pom.xml` as `sokar.release.*`, beside
+`agent.cli.version`: the label, the source definition, the npm registry and dist-tag, no digest,
+the package name and the Node image the lockfile is resolved in. Flags on each call would have put
+the same facts on every workflow line, and the second copy is the one that goes stale.
+
+**The relock image is the one fact written twice**, because the tool reads the pom uninterpolated
+and `build-pi-tree.sh` pins `NODE_VERSION` for the tree build. `PinAgreementTest` fails when the two
+name different images, so a lockfile is never resolved by one npm and installed by another. Moving
+the pin into the pom and passing it to the script would remove the copy; it was not done here
+because the script's own guards and their tests read its defaults.
+
+**At package time the tool is a plugin dependency of the exec plugin**, not a dependency of the
+project, so it never reaches the bill of materials or the native image's classpath.
+
+**Measured before the Python was deleted**, against the same inputs: `merge-tree-bill` carried all
+135 of the tree's components under the same subject, identical except one description whose
+trailing space the tool trims; `upstream-version` answered `rollback` for a dist-tag older than the
+pin; `compare-bills` stopped on a component nested in the tree that the update did not name. The
+relock itself was not run - it needs podman, which the machine that did this has not got.
 
 ## Pi does not check for a newer version in a task
 

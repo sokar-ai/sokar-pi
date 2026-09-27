@@ -142,10 +142,16 @@ one copy.
 - **Settled reasoning goes in `doc/decisions.md`**, including accepted risks. An accepted risk says
   what the exposure is, why it is not being removed, and what would change the answer.
 - **The exceptions to the dot-file rule here** are what a Java build needs: `.github`, `.mvn`,
-  `.gitignore`, `.gitkeep`, plus `__pycache__/` for the Python tooling.
+  `.gitignore`, `.gitkeep`.
 - **The skills this repository expects**, at the operator's instruction: Oracle's GraalVM skill
-  (`oracle/skills`, the `graal` directory) because the build produces a native image, and
-  `decebals/claude-code-java` because it is a Java repository. They come from
+  (`oracle/skills`, the `graal` directory) because the build produces a native image, and six of
+  `decebals/claude-code-java` because it is a Java repository. That set is eighteen skills, and
+  `spring-boot-patterns` or `jpa-patterns` say nothing about this code, so these are the ones meant:
+
+      graal  java-code-review  test-quality  security-audit  concurrency-review
+      clean-code  solid-principles
+
+  They come from
   **<https://fuinorg.jfrog.io/artifactory/agent-skills/>** rather than from GitHub: a tag upstream
   is a name its owner may repoint, and what is republished there is what was reviewed and can be
   rolled back.
@@ -164,8 +170,9 @@ one copy.
 - **The build is Java and Maven, and a file that is not says why it stays** (Sokar B53, 2026-09-13).
   What stays: `mvnw`, the Maven wrapper, which is how a pinned Maven arrives before any Java tooling
   can run; and `buildtools/build-pi-tree.sh`, which orchestrates podman and npm in a pinned container
-  - the reason and its guard matrix are in `doc/decisions.md`. The Python tools and `acceptance.sh`
-  are on their way out - PI10 to PI12.
+  - the reason and its guard matrix are in `doc/decisions.md`. It still runs one inline Python
+  step, which PI17 takes out. The release tooling is Sokar's `sokar-release`, called from the pom
+  and the workflows, and the acceptance run is the scenarios in `src/acceptance`.
 
 ### How to get them
 
@@ -183,6 +190,11 @@ verb: there is no instruction every agent understands, so this section gives you
 reads `~/.claude/skills/<slug>/` and a project's `.claude/skills/<slug>/`; another harness has its
 own place, and a skill put where nothing reads it fails silently. Verify by asking the harness what
 it loaded, not by looking at the directory.
+
+**If the harness cannot install a skill, read it.** Unpack it outside the repository, in a scratch
+directory, and read its `SKILL.md`. A harness that cannot write its skills directory has not left
+you without the skills - Agent Sokar's could not on 2026-09-27, and the reading still found two
+defects that 104 tests had missed.
 
 **Check what you downloaded.** The artifact's SHA-256 is stated under
 `/artifactory/api/storage/agent-skills/<path>`; an interrupted transfer otherwise installs a
@@ -230,6 +242,9 @@ implementation.
   `GraphQL: GitHub Actions is not permitted to create or approve pull requests`, both update runs of
   2026-09-21. `sokar-pi`'s licence gate fired correctly and its reason died in the runner. Ways out:
   the setting, or the request step prefers `secrets.SOKAR_UPDATE_TOKEN` as the merge step does.
+- **The release tooling is `sokar-release`**, resolved like `sokar-machines` through `-Pci-tools`;
+  what this agent differs in is the `sokar.release.*` properties in `pom.xml`. At package time it
+  is a plugin dependency of the exec plugin, so it never becomes a dependency of the package.
 - `buildtools/build-pi-tree.sh` builds what the package carries - Pi from a lockfile and a pinned
   Node runtime - inside a container, so no Node toolchain has to exist on the build machine.
   It needs podman and skips itself with a message when there is none.
