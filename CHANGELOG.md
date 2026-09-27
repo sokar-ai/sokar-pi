@@ -28,6 +28,7 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ### Security
 
+- The tree is built in a Node image pinned by digest, not by a tag its owner could repoint; npm ci and the Node checksum run inside that image.
 - Pi no longer asks for a newer version at start inside a task; the check could only fail there.
 - The acceptance suite no longer puts the test credential on a command line; the pattern reaches `grep` on a file descriptor.
 - The check that no log holds the credential also searches with line breaks removed, so a value split across a newline is found rather than reported as absent.
@@ -55,6 +56,8 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ### Fixed
 
+- With one prompt open over another, the status file names the prompt still waiting once the inner one closes, rather than the one that closed.
+- The native binary starts on any x86-64 CPU; it needed AVX2, so on a pre-Haswell host or a VM with a conservative CPU model the package installed and then would not start.
 - The packages declare the glibc (2.34) and zlib the native binary links against, and the build fails when the binary needs more.
 - The build's index check follows Artifactory's redirect to cloud storage; it had read every package as not indexed.
 - The agent is registered in `META-INF/services` like the other two, which was an empty directory; only in-process discovery read it, so no shipped package was affected.

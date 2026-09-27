@@ -43,7 +43,7 @@ class PinAgreementTest {
 
     private static final Path BUILT_NODE = Path.of("target/tree/node/bin/node");
 
-    private static final List<String> RUNTIME = List.of("NODE_VERSION", "NODE_SHA256");
+    private static final List<String> RUNTIME = List.of("NODE_VERSION", "NODE_SHA256", "NODE_IMAGE_DIGEST");
 
     private static final Pattern VERSION =
             Pattern.compile("^\\s*version:\\s*\"?([^\"\\n]+)\"?\\s*$", Pattern.MULTILINE);
@@ -132,6 +132,17 @@ class PinAgreementTest {
     }
 
     @Test
+    void refusesABuilderImageNamedByTagAlone() throws IOException {
+
+        // A tag is a name its owner may repoint, and npm ci, the Node download and its checksum all
+        // run inside that image: whoever repoints it controls the checks that protect the package.
+        final String script = script().replaceFirst("(?m)^NODE_IMAGE_DIGEST=.*$", "");
+
+        assertThat(runtimeDisagreements(script, Map.of())).singleElement().asString()
+                .contains("no default for NODE_IMAGE_DIGEST");
+    }
+
+    @Test
     void refusesARelockImageThatIsNotTheBuilder() throws IOException {
 
         // A lockfile resolved by one npm and installed by another is how a tree drifts from its
@@ -151,9 +162,20 @@ class PinAgreementTest {
         // clean checkout this is skipped - reported as skipped, not passed.
         assumeTrue(Files.isExecutable(BUILT_NODE), "no built tree at " + BUILT_NODE);
 
-        final Process node = new ProcessBuilder(BUILT_NODE.toString(), "--version").redirectErrorStream(true).start();
-        final String reported = new String(node.getInputStream().readAllBytes(), StandardCharsets.UTF_8).strip();
-        assertThat(node.waitFor(30, TimeUnit.SECONDS)).isTrue();
+        // To a file rather than a pipe: reading a pipe to its end would wait out a hang, not the timeout.
+        final Path out = Files.createTempFile("node-version", ".txt");
+        final String reported;
+        try {
+            final Process node = new ProcessBuilder(BUILT_NODE.toString(), "--version").redirectErrorStream(true)
+                    .redirectOutput(out.toFile()).start();
+            if (!node.waitFor(30, TimeUnit.SECONDS)) {
+                node.destroyForcibly();
+                throw new AssertionError("node --version did not finish within 30 seconds");
+            }
+            reported = Files.readString(out, StandardCharsets.UTF_8).strip();
+        } finally {
+            Files.deleteIfExists(out);
+        }
 
         assertThat(reportDisagreements(reported, reviewedDefault(script(), "NODE_VERSION"))).isEmpty();
     }
@@ -218,7 +240,8 @@ class PinAgreementTest {
         if (!configured.find()) {
             return List.of("pom.xml declares no sokar.release.npm.image");
         }
-        final String builder = "docker.io/library/node:" + reviewedDefault(script, "NODE_VERSION") + "-slim";
+        final String builder = "docker.io/library/node:" + reviewedDefault(script, "NODE_VERSION") + "-slim@sha256:"
+                + reviewedDefault(script, "NODE_IMAGE_DIGEST");
         final String relock = configured.group(1).strip();
         return relock.equals(builder) ? List.of()
                 : List.of("the update relocks in " + relock + ", build-pi-tree.sh builds in " + builder);

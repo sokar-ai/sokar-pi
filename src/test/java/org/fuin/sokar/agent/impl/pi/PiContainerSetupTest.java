@@ -1,9 +1,12 @@
 package org.fuin.sokar.agent.impl.pi;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import org.fuin.sokar.agent.api.AgentException;
 import org.fuin.sokar.agent.api.ContainerFile;
+import org.fuin.sokar.agent.api.SetupContext;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -132,5 +135,16 @@ class PiContainerSetupTest {
         assertThat(status(files("")).content())
                 .as("no network of any kind")
                 .doesNotContain("fetch(").doesNotContain("http");
+    }
+
+    @Test
+    void refusesABrokeredTaskWithoutAProvider() {
+
+        // Sokar never sends one: no provider chosen means no endpoint either. A file naming the
+        // provider "" would override nothing and fail as a wrong credential, so a blank one is
+        // Sokar's regression, and saying so is what would find it.
+        assertThatThrownBy(() -> new PiContainerSetup().files(new SetupContext(
+                "sokar_pt_x", "api-key", "/workspace", "http://127.0.0.1:9419", " ")))
+                .isInstanceOf(AgentException.class).hasMessageContaining("empty provider");
     }
 }

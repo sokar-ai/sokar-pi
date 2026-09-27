@@ -1,6 +1,7 @@
 package org.fuin.sokar.agent.impl.pi;
 
 import java.util.List;
+import org.fuin.sokar.agent.api.AgentException;
 import org.fuin.sokar.agent.api.ContainerFile;
 import org.fuin.sokar.agent.api.ContainerSetup;
 import org.fuin.sokar.agent.api.SetupContext;
@@ -30,6 +31,12 @@ public class PiContainerSetup implements ContainerSetup {
             // or a token that is not there, and Pi fails looking like a wrong credential.
             return List.copyOf(files);
         }
+        if (context.provider().isBlank()) {
+            // Sokar sends a provider with every endpoint; a blank one is a regression on that
+            // side, and a file naming "" would override nothing and fail as a wrong credential.
+            throw new AgentException("Sokar sent an empty provider for a brokered task - a bug in"
+                    + " Sokar, not in the operator's setup: no routing file can be written");
+        }
         files.add(ContainerFile.secret(PiRoutingExtension.FILE,
                 PiRoutingExtension.document(context.provider(), context.endpoint(),
                         context.token())));
@@ -43,6 +50,6 @@ public class PiContainerSetup implements ContainerSetup {
      * @return {@code true} when there is a token to write.
      */
     private static boolean credentialed(final SetupContext context) {
-        return context.token() != null && !context.token().isBlank();
+        return !context.token().isBlank();
     }
 }

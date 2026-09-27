@@ -86,7 +86,7 @@ documentation is not exempt, and a range that cannot be compared fails.
 **Decided 2026-09-13**, agreeing with Sokar B53's proposal for it.
 
 The build is to be Java and Maven, and a file that is not says why. This one runs `npm ci` and the
-bill generator inside a pinned builder container through podman, validates three overridable inputs,
+bill generator inside a builder container pinned by digest through podman, validates five overridable inputs,
 and packs the tree. Every step is a process call; a Java version would make the same calls with more
 lines and hide them behind a process API. What it must not lose is its input guards.
 
@@ -98,6 +98,8 @@ Each of these must be refused with exit 2, executing nothing:
     NODE_VERSION="'; rm -rf /out; '"
     NODE_SHA256=deadbeef
     PI_BUILDER_IMAGE='node:22; id'
+    NODE_IMAGE_DIGEST=deadbeef
+    JAVA_CMD='java; id'
 
 Whoever changes the script runs the matrix and records the result in the commit.
 

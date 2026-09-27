@@ -26,6 +26,9 @@ class IssueLinkTest {
 
     private static final Pattern LINK = Pattern.compile("\\]\\(([^)\\s]+)");
 
+    // A reference-style link names its target on a line of its own: [label]: target
+    private static final Pattern REFERENCE = Pattern.compile("(?m)^\\s*\\[[^\\]]+\\]:\\s*(\\S+)");
+
     // Any depth under issues/, because another repository's requirements sit one level deeper.
     private static final Pattern ISSUE_FILE = Pattern.compile(".*issues/.+\\.md(#.*)?");
 
@@ -74,6 +77,22 @@ class IssueLinkTest {
         assertThat(offenders("build.md", "Open work is in [the index](issues/README.md).")).isEmpty();
     }
 
+    @Test
+    void allowsALinkToARowOfTheIndex() {
+
+        // The fragment names a row; the target is still the index.
+        assertThat(offenders("build.md", "Next is [the top row](issues/README.md#pi12).")).isEmpty();
+    }
+
+    @Test
+    void refusesAReferenceStyleLinkToAnIssueFile() {
+
+        final String document = "Waiting on [the pin][pin].\n\n[pin]: issues/PI03-Automated-Agent-Updates.md\n";
+
+        assertThat(offenders("doc/decisions.md", document)).singleElement().asString()
+                .contains("PI03-Automated-Agent-Updates.md");
+    }
+
     /**
      * Returns every link to an issue file in one document.
      *
@@ -87,11 +106,15 @@ class IssueLinkTest {
             return List.of();
         }
         final List<String> found = new ArrayList<>();
-        final Matcher link = LINK.matcher(text);
-        while (link.find()) {
-            final String target = link.group(1);
-            if (ISSUE_FILE.matcher(target).matches() && !target.endsWith("README.md")) {
-                found.add(path + " links an issue file rather than the index: " + target);
+        for (final Pattern kind : List.of(LINK, REFERENCE)) {
+            final Matcher link = kind.matcher(text);
+            while (link.find()) {
+                final String target = link.group(1);
+                // A fragment names a row of the index; it does not make the index an issue file.
+                final String file = target.replaceFirst("#.*$", "");
+                if (ISSUE_FILE.matcher(file).matches() && !file.endsWith("README.md")) {
+                    found.add(path + " links an issue file rather than the index: " + target);
+                }
             }
         }
         return found;

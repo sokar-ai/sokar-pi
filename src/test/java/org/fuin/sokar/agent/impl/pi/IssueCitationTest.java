@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 class IssueCitationTest {
 
     /** This repository's set. Another repository's letter is not ours to check. */
-    static final String LETTER = "PI";
+    static final String LETTER = RepositoryDocuments.LETTER;
 
     private static final Pattern CITATION = Pattern.compile("\\b" + LETTER + "([0-9]{2})\\b");
 

@@ -58,4 +58,20 @@ class NativeLinkageTest {
         assertThat(NativeLinkageCheck.compare("2.3.4", "2.34")).isNegative();
         assertThat(NativeLinkageCheck.compare("2.34", "2.34.0")).isZero();
     }
+
+    @Test
+    void acceptsABinaryThatNeedsOnlyTheBaseline() {
+
+        assertThat(NativeLinkageCheck.cpuProblems(
+                "... required by the image: [CX8, CMOV, FXSR, MMX, SSE, SSE2]. Please rebuild ...")).isEmpty();
+    }
+
+    @Test
+    void refusesABinaryThatNeedsX8664V2() {
+
+        // The exact set, not "no v3": a v2-only binary still fails on a CPU without SSE4.2 or POPCNT.
+        assertThat(NativeLinkageCheck.cpuProblems(
+                "required by the image: [CX8, CMOV, FXSR, MMX, SSE, SSE2, SSE3, SSSE3, SSE4_1, SSE4_2, POPCNT]"))
+                .hasSize(5).anySatisfy(problem -> assertThat(problem).contains("POPCNT"));
+    }
 }

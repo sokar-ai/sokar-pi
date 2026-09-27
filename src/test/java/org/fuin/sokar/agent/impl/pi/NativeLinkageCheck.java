@@ -39,6 +39,16 @@ class NativeLinkageCheck {
 
     private static final Pattern VERSION = Pattern.compile("Name: ([A-Z]+)_([0-9]+(?:\\.[0-9]+)*)\\b");
 
+    /** What native-image prints when a CPU lacks a feature the image was built for. */
+    private static final Pattern REQUIRED = Pattern.compile("required by the image: \\[([A-Z0-9_, ]+)\\]");
+
+    /**
+     * The x86-64 baseline, and the whole of what the binary may need: the operator decided that every
+     * native image runs on any x86-64 CPU. native-image's default is v3, and a pre-Haswell CPU or a VM
+     * with a conservative CPU model would install the package and then not start it.
+     */
+    static final Set<String> BASELINE = Set.of("CMOV", "CX8", "FXSR", "MMX", "SSE", "SSE2");
+
     @Test
     void theBinaryNeedsNoMoreThanItsPackagesDeclare() throws IOException, InterruptedException {
 
@@ -48,6 +58,35 @@ class NativeLinkageCheck {
         assertThat(problems(readelf(binary), Map.of(
                 "GLIBC", System.getProperty("package.glibc.floor"),
                 "ZLIB", System.getProperty("package.zlib.floor")))).isEmpty();
+    }
+
+    @Test
+    void theBinaryStartsOnAnyX8664Cpu() throws IOException {
+
+        final Path binary = Path.of(System.getProperty("sokar.native.binary", ""));
+        assertThat(Files.isRegularFile(binary)).as("%s - built by -Pnative", binary).isTrue();
+
+        assertThat(cpuProblems(new String(Files.readAllBytes(binary), StandardCharsets.ISO_8859_1))).isEmpty();
+    }
+
+    /**
+     * Returns the CPU features the binary requires beyond the x86-64 baseline.
+     *
+     * @param binary The binary's bytes, as text.
+     * @return One sentence per feature; empty when any x86-64 CPU runs it.
+     */
+    static List<String> cpuProblems(final String binary) {
+        final Matcher required = REQUIRED.matcher(binary);
+        if (!required.find()) {
+            return List.of("the binary names no CPU requirement - native-image's message was not found");
+        }
+        final List<String> problems = new ArrayList<>();
+        for (final String feature : required.group(1).split(",\\s*")) {
+            if (!BASELINE.contains(feature.strip())) {
+                problems.add(feature.strip() + " is required, so a CPU without it cannot start the agent");
+            }
+        }
+        return problems;
     }
 
     /**
@@ -116,10 +155,19 @@ class NativeLinkageCheck {
                 .redirectErrorStream(true);
         // The labels are translated otherwise, and the patterns above are the English ones.
         builder.environment().put("LC_ALL", "C");
-        final Process process = builder.start();
-        final String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-        assertThat(process.waitFor(30, TimeUnit.SECONDS)).isTrue();
-        assertThat(process.exitValue()).as(output).isZero();
-        return output;
+        // To a file rather than a pipe: reading a pipe to its end would wait out a hang, not the timeout.
+        final Path out = Files.createTempFile("readelf", ".txt");
+        try {
+            final Process process = builder.redirectOutput(out.toFile()).start();
+            if (!process.waitFor(30, TimeUnit.SECONDS)) {
+                process.destroyForcibly();
+                throw new AssertionError("readelf did not finish within 30 seconds");
+            }
+            final String output = Files.readString(out, StandardCharsets.UTF_8);
+            assertThat(process.exitValue()).as(output).isZero();
+            return output;
+        } finally {
+            Files.deleteIfExists(out);
+        }
     }
 }

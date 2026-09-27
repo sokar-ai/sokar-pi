@@ -20,9 +20,12 @@ RELEASE_CLASSPATH="${1:-}"
 TARGET="$MODULE/target/tree"
 NODE_VERSION="${NODE_VERSION:-22.20.0}"
 NODE_SHA256="${NODE_SHA256:-eeaccb0378b79406f2208e8b37a62479c70595e20be6b659125eb77dd1ab2a29}"
-BUILDER="${PI_BUILDER_IMAGE:-docker.io/library/node:${NODE_VERSION}-slim}"
+# The builder by digest, not tag: npm ci, the Node download and its checksum all run inside it, and a
+# tag is a name its owner may repoint. The multi-arch index of node:22.20.0-slim, read 2026-09-27.
+NODE_IMAGE_DIGEST="${NODE_IMAGE_DIGEST:-b21fe589dfbe5cc39365d0544b9be3f1f33f55f3c86c87a76ff65a02f8f5848e}"
+BUILDER="${PI_BUILDER_IMAGE:-docker.io/library/node:${NODE_VERSION}-slim@sha256:${NODE_IMAGE_DIGEST}}"
 
-# All three can be overridden from the environment, and every one of them ends up in a command that
+# Each of these can be overridden from the environment, and every one of them ends up in a command that
 # runs inside a build container with the shipped tree mounted writable. Checked against a strict
 # shape here, so a value carrying shell syntax is refused rather than executed - and a mistyped
 # version fails now rather than as a confusing error inside the container.
@@ -31,6 +34,12 @@ refuse() { echo "build-pi-tree: $1" >&2; exit 2; }
     || refuse "NODE_VERSION='$NODE_VERSION' is not a version"
 [[ "$NODE_SHA256" =~ ^[0-9a-f]{64}$ ]] \
     || refuse "NODE_SHA256 is not a 64-character lowercase digest"
+[[ "$NODE_IMAGE_DIGEST" =~ ^[0-9a-f]{64}$ ]] \
+    || refuse "NODE_IMAGE_DIGEST is not a 64-character lowercase digest"
+# Maven passes the JVM it runs on; anything else from the environment must still be one binary.
+JAVA_CMD="${JAVA_CMD:-$(command -v java || true)}"
+[[ "$JAVA_CMD" == /* && -x "$JAVA_CMD" ]] \
+    || refuse "JAVA_CMD='$JAVA_CMD' is not an absolute path to an executable"
 [[ "$BUILDER" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*(:[A-Za-z0-9._-]+)?(@sha256:[0-9a-f]{64})?$ ]] \
     || refuse "PI_BUILDER_IMAGE='$BUILDER' is not an image reference"
 
@@ -115,7 +124,7 @@ podman run --rm --userns=keep-id -v "$TARGET:/out:z" "$BUILDER" sh -c '
 # what is recorded is what was checked.
 [ -n "$RELEASE_CLASSPATH" ] \
     || refuse "no classpath for Sokar's release tool - run this from Maven, which passes it"
-"${JAVA_CMD:-java}" -cp "$RELEASE_CLASSPATH" org.fuin.sokar.release.Main add-component \
+"$JAVA_CMD" -cp "$RELEASE_CLASSPATH" org.fuin.sokar.release.Main add-component \
     "$TARGET/pi/sbom.cdx.json" --name node --version "$NODE_VERSION" \
     --url "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-x64.tar.gz" \
     --sha256 "$NODE_SHA256" --license MIT

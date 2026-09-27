@@ -52,45 +52,41 @@ final class PiStatusExtension {
                 const FILE = %s;
 
                 // What it was doing before a prompt opened, so closing one returns it to that
-                // rather than guessing. Prompts nest; only the outermost span matters.
+                // rather than guessing. Prompts nest: the open ones are a stack, and the one a
+                // person is answering is the innermost still open.
                 let base = "idle";
-                let waiting = 0;
-                let detail = null;
+                const prompts = [];
 
                 function write() {
-                    const state = waiting > 0 ? "waiting" : base;
+                    const open = prompts.length > 0;
                     const body = JSON.stringify({
-                        state,
-                        detail: waiting > 0 ? detail : null,
+                        state: open ? "waiting" : base,
+                        detail: open ? prompts[prompts.length - 1] : null,
                         at: new Date().toISOString(),
                     });
                     try {
                         mkdirSync(dirname(FILE), { recursive: true });
                         // Atomic: a reader never sees half a file.
-                        writeFileSync(FILE + ".new", body + "\\n", { mode: 0o600 });
-                        renameSync(FILE + ".new", FILE);
+                        // Named per process: two agents in one container must not rename each
+                        // other's half-written file.
+                        const next = FILE + "." + process.pid + ".new";
+                        writeFileSync(next, body + "\\n", { mode: 0o600 });
+                        renameSync(next, FILE);
                     } catch {
                         // A status file that cannot be written must never take the agent with it.
                     }
                 }
 
                 export default function (pi) {
-                    pi.on("session_start", () => { base = "idle"; waiting = 0; write(); });
+                    pi.on("session_start", () => { base = "idle"; prompts.length = 0; write(); });
                     pi.on("agent_start", () => { base = "working"; write(); });
                     pi.on("agent_settled", () => { base = "idle"; write(); });
                     pi.on("ui_prompt_start", (event) => {
-                        waiting += 1;
-                        detail = event && event.title ? String(event.title) : null;
+                        prompts.push(event && event.title ? String(event.title) : null);
                         write();
                     });
-                    pi.on("ui_prompt_end", () => {
-                        waiting = Math.max(0, waiting - 1);
-                        if (waiting === 0) {
-                            detail = null;
-                        }
-                        write();
-                    });
-                    pi.on("session_shutdown", () => { base = "gone"; waiting = 0; write(); });
+                    pi.on("ui_prompt_end", () => { prompts.pop(); write(); });
+                    pi.on("session_shutdown", () => { base = "gone"; prompts.length = 0; write(); });
                 }
                 """.formatted(Json.write(STATE_FILE));
     }

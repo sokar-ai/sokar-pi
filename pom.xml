@@ -60,7 +60,7 @@
         <sokar.release.channel>latest</sokar.release.channel>
         <sokar.release.digest>none</sokar.release.digest>
         <sokar.release.npm.package>@earendil-works/pi-coding-agent</sokar.release.npm.package>
-        <sokar.release.npm.image>docker.io/library/node:22.20.0-slim</sokar.release.npm.image>
+        <sokar.release.npm.image>docker.io/library/node:22.20.0-slim@sha256:b21fe589dfbe5cc39365d0544b9be3f1f33f55f3c86c87a76ff65a02f8f5848e</sokar.release.npm.image>
 
         <!-- The published contract this builds against. Nothing else of Sokar's is on the
              classpath, and no checkout of the sokar repository is needed to build here. -->
@@ -236,6 +236,12 @@
                                 <configuration>
                                     <imageName>sokar-agent-pi</imageName>
                                     <mainClass>org.fuin.sokar.agent.impl.pi.PiAgent</mainClass>
+                                    <!-- The x86-64 baseline, by the operator's decision: native-image's default is v3,
+                                         and a CPU or VM without AVX2 would install the package and not start it.
+                                         NativeLinkageCheck holds the binary to exactly the baseline. -->
+                                    <buildArgs>
+                                        <buildArg>-march=x86-64</buildArg>
+                                    </buildArgs>
                                 </configuration>
                             </execution>
                         </executions>
