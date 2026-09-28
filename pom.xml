@@ -440,7 +440,7 @@
                                             <type>file</type>
                                             <mapper>
                                                 <type>perm</type>
-                                                <prefix>/usr/share/sokar/agents/pi</prefix>
+                                                <prefix>${agent.install.dir}/pi</prefix>
                                                 <filemode>644</filemode>
                                                 <user>root</user>
                                                 <group>root</group>
@@ -528,7 +528,7 @@
                             </signature>
                             <entries>
                                 <entry>
-                                    <name>/usr/share/sokar/agents/pi/pi-tree.tar.gz</name>
+                                    <name>${agent.install.dir}/pi/pi-tree.tar.gz</name>
                                     <file>${project.build.directory}/pi-tree.tar.gz</file>
                                     <mode>0644</mode>
                                     <user>root</user>

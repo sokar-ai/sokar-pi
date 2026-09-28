@@ -17,6 +17,7 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ### Changed
 
+- The Pi tree installs beside the agent binary and is named relative to it, so a copy of the agent in one account's own directory ships that account's tree.
 - The tree build records the Node runtime in its bill with Sokar's release tool, so no build step needs `python3`.
 - The build and the update job call Sokar's release tool instead of Python: merging the tree's bill, the upstream lookup, the pin move with its relock, and the bill comparison.
 - The acceptance run is the Cucumber scenarios alone; they refuse to run as root, bring a vault of their own, and check that the adapter ships what its bill names and that a live task's broker saw the request.

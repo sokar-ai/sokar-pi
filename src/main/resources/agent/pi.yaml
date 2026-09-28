@@ -52,8 +52,12 @@ install:
   # Shipped in this package rather than fetched: Pi is 162 npm packages and a Node runtime, with
   # no single URL to pin. Verification happens once where the package is built, against a lockfile
   # that pins every dependency by integrity hash, and the image build then downloads nothing.
+  #
+  # Named beside the agent's binary rather than by absolute path, so an account that runs its own
+  # copy of the agent copies its own tree into the image, not the machine's. The package puts it
+  # there, in pi/ under the agents directory.
   packaged:
-    - source: /usr/share/sokar/agents/pi/pi-tree.tar.gz
+    - source: pi/pi-tree.tar.gz
       target: /opt
   as_root:
     - "# Pi runs from the tree copied in above; this is the only thing that has to be on PATH."

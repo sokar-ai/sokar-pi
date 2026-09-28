@@ -5,8 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.fuin.sokar.agent.api.Agent;
 import org.fuin.sokar.agent.api.AgentRegistry;
+import org.fuin.sokar.agent.api.PackagedTree;
 import org.fuin.sokar.agent.api.RunRequest;
 import org.junit.jupiter.api.Test;
 
@@ -25,6 +28,20 @@ class PiAgentTest {
 
         assertThat(registry.names()).contains("pi");
         assertThat(registry.require("pi").definition().binary()).isEqualTo("pi");
+    }
+
+    @Test
+    void shipsItsTreeBesideItsBinary() throws IOException {
+
+        // Relative to the binary, the tree follows the agent into an account's own directory; an
+        // absolute path would copy the machine's tree whichever copy of the agent ran.
+        assertThat(agent.definition().packaged()).extracting(PackagedTree::source)
+                .containsExactly("pi/pi-tree.tar.gz");
+        // And both packages put it there, beside the binary they install.
+        final String pom = Files.readString(Path.of("pom.xml"));
+        assertThat(pom).contains("<prefix>${agent.install.dir}/pi</prefix>")
+                .contains("<name>${agent.install.dir}/pi/pi-tree.tar.gz</name>")
+                .doesNotContain("/usr/share/sokar/agents/pi");
     }
 
     @Test
