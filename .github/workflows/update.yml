@@ -1,4 +1,5 @@
-# Follows Pi, so nobody has to.
+# Follows Pi and the tree's pins - Node, fd, ripgrep - so nobody has to. Each is its own job and its own
+# pull request: one change to review, and a pin that fails its checks holds up nobody else.
 name: Update
 
 on:
@@ -7,11 +8,16 @@ on:
     - cron: '17 5 * * 1'
   workflow_dispatch:
     inputs:
+      what:
+        description: 'What to follow: all of them, or the CLI or one pin'
+        type: choice
+        options: [all, cli, node, fd, rg]
+        default: all
       version:
-        description: 'Pin this exact version instead of asking upstream'
+        description: 'Pin this exact version instead of asking upstream - with one of them chosen above'
         required: false
       channel:
-        description: "Which npm dist-tag to follow when no version is given"
+        description: "Which npm dist-tag to follow for the CLI when no version is given"
         required: false
         default: latest
 
@@ -28,8 +34,14 @@ concurrency:
 jobs:
 
   update:
-    name: Follow Pi
+    name: Follow ${{ matrix.what }}
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      # One at a time: each rents machines, and the second pull request is easier to rebase than to race.
+      max-parallel: 1
+      matrix:
+        what: ${{ fromJSON((inputs.what && inputs.what != 'all') && format('["{0}"]', inputs.what) || '["cli","node","fd","rg"]') }}
 
     steps:
 
@@ -51,21 +63,48 @@ jobs:
 
       # ------------------------------------------------------------------ detect
 
-      # Through env, never interpolated into the script, so no value can become shell.
+      # A version typed by hand means one thing only; for all four it would pin each of them to it.
+      - name: What this job follows
+        id: what
+        env:
+          WHAT: ${{ matrix.what }}
+          VERSION: ${{ inputs.version }}
+          ALL: ${{ !inputs.what || inputs.what == 'all' }}
+        run: |
+          set -eu
+          if [ -n "${VERSION:-}" ] && [ "$ALL" = "true" ]; then
+              echo "::error::a version is pinned for one of them - choose cli, node, fd or rg"
+              exit 1
+          fi
+          # The label names it in the pull request, 'moved' is its component in the shipped tree's bill.
+          case "$WHAT" in
+              cli)  echo "label=Pi"      >> "$GITHUB_OUTPUT"; echo "moved=pi-coding-agent" >> "$GITHUB_OUTPUT" ;;
+              node) echo "label=Node"    >> "$GITHUB_OUTPUT"; echo "moved=node"            >> "$GITHUB_OUTPUT" ;;
+              fd)   echo "label=fd"      >> "$GITHUB_OUTPUT"; echo "moved=fd"              >> "$GITHUB_OUTPUT" ;;
+              rg)   echo "label=ripgrep" >> "$GITHUB_OUTPUT"; echo "moved=ripgrep"         >> "$GITHUB_OUTPUT" ;;
+              *)    echo "::error::nothing is followed as '$WHAT'"; exit 1 ;;
+          esac
+
+      # Through env, never interpolated into the script, so no value can become shell. The pom holds
+      # each pin's upstream and line, and the age a release must reach before it is taken.
       - name: What does upstream publish
         id: detect
         env:
+          WHAT: ${{ matrix.what }}
           CHANNEL: ${{ inputs.channel || 'latest' }}
           VERSION: ${{ inputs.version }}
         run: |
           set -eu
+          if [ "$WHAT" = "cli" ]; then
+              set -- --channel "$CHANNEL"
+          else
+              set -- --pin "$WHAT"
+          fi
           # A dispatch answers for the channel, so 'major' is still measured against what is pinned.
           if [ -n "${VERSION:-}" ]; then
-              java -cp "$(cat target/cp.txt)" org.fuin.sokar.release.Main upstream-version \
-                  --channel "$CHANNEL" --upstream "$VERSION"
-          else
-              java -cp "$(cat target/cp.txt)" org.fuin.sokar.release.Main upstream-version --channel "$CHANNEL"
+              set -- "$@" --upstream "$VERSION"
           fi
+          java -cp "$(cat target/cp.txt)" org.fuin.sokar.release.Main upstream-version "$@"
 
       - name: What this run will do
         id: plan
@@ -74,6 +113,8 @@ jobs:
           UPSTREAM: ${{ steps.detect.outputs.upstream }}
           PINNED: ${{ steps.detect.outputs.pinned }}
           SOURCE: ${{ steps.detect.outputs.source }}
+          WAITING: ${{ steps.detect.outputs.waiting }}
+          LABEL: ${{ steps.what.outputs.label }}
         run: |
           set -eu
           if [ "$UPDATE" = "yes" ]; then
@@ -85,11 +126,15 @@ jobs:
               echo "proceed=no" >> "$GITHUB_OUTPUT"
               echo "STOP=$SOURCE points at $UPSTREAM, older than the pinned $PINNED" >> "$GITHUB_ENV"
               echo "Either upstream withdrew $PINNED, or it was pinned from another pointer."
-              echo "To go back deliberately, dispatch this workflow with version=$UPSTREAM."
+              echo "To go back deliberately, dispatch this workflow for this one with version=$UPSTREAM."
               echo "Until one of the two moves, every scheduled run stops here."
+          elif [ -n "${WAITING:-}" ]; then
+              echo "proceed=no" >> "$GITHUB_OUTPUT"
+              echo "$LABEL $UPSTREAM is out, but younger than the pom's sokar.release.min-age."
+              echo "It is taken from $WAITING on. $PINNED stays pinned until then."
           else
               echo "proceed=no" >> "$GITHUB_OUTPUT"
-              echo "Pi $PINNED is still what the channel points at."
+              echo "$LABEL $PINNED is still what $SOURCE points at."
               echo "Nothing to do. This is the ordinary outcome of this job."
           fi
 
@@ -98,8 +143,15 @@ jobs:
       - name: Pin it
         if: steps.plan.outputs.proceed == 'yes'
         env:
+          WHAT: ${{ matrix.what }}
           TARGET: ${{ steps.plan.outputs.target }}
-        run: java -cp "$(cat target/cp.txt)" org.fuin.sokar.release.Main update "$TARGET"
+        run: |
+          set -eu
+          if [ "$WHAT" = "cli" ]; then
+              java -cp "$(cat target/cp.txt)" org.fuin.sokar.release.Main update "$TARGET"
+          else
+              java -cp "$(cat target/cp.txt)" org.fuin.sokar.release.Main update "$TARGET" --pin "$WHAT"
+          fi
 
       # ------------------------------------------------------------------ verify
 
@@ -118,15 +170,17 @@ jobs:
               -Dagent.snapshot.run=${{ github.run_number }} \
               || echo "STOP=the packages did not build" >> "$GITHUB_ENV"
 
-      # The tree's own package carries its version in its purl, so without --expect-moved this
-      # stops every time. Its dependencies are not excused, which is the point.
+      # What moved carries its version in its purl, so without --expect-moved this stops every time.
+      # Nothing else is excused, which is the point.
       - name: What else changed in the shipped tree
         if: steps.plan.outputs.proceed == 'yes' && !env.STOP
+        env:
+          MOVED: ${{ steps.what.outputs.moved }}
         run: |
           java -cp "$(cat target/cp.txt)" org.fuin.sokar.release.Main compare-bills \
               target/sokar-agent-pi.cdx.json \
               https://fuinorg.jfrog.io/artifactory/sokar-dist-deb/pool/main/s/sokar-agent-pi/sokar-agent-pi.cdx.json \
-              --expect-moved pi-coding-agent \
+              --expect-moved "$MOVED" \
               > target/bill-change.txt 2>&1 \
               || echo "STOP=third-party components or licenses changed" >> "$GITHUB_ENV"
           # In a file as well, so the pull request can carry it rather than only the run log.
@@ -147,10 +201,11 @@ jobs:
         env:
           HETZNER_API: ${{ secrets.HETZNER_API }}
           HETZNER_SSH: ${{ secrets.HETZNER_SSH }}
-          SOKAR_CI_LEG: upd-ubuntu
+          SOKAR_CI_LEG: upd-${{ matrix.what }}-ubuntu
           SOKAR_E2E_OPENROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
           SOKAR_E2E_MODEL: z-ai/glm-4.6
-          SOKAR_E2E_EXPECT_CLI: ${{ steps.plan.outputs.target }}
+          # Only when the CLI is what moved; a pin run installs the CLI that is already pinned.
+          SOKAR_E2E_EXPECT_CLI: ${{ matrix.what == 'cli' && steps.plan.outputs.target || '' }}
         run: |
           java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main acceptance \
               --os ubuntu --package sokar-agent-pi \
@@ -162,10 +217,11 @@ jobs:
         env:
           HETZNER_API: ${{ secrets.HETZNER_API }}
           HETZNER_SSH: ${{ secrets.HETZNER_SSH }}
-          SOKAR_CI_LEG: upd-fedora
+          SOKAR_CI_LEG: upd-${{ matrix.what }}-fedora
           SOKAR_E2E_OPENROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
           SOKAR_E2E_MODEL: z-ai/glm-4.6
-          SOKAR_E2E_EXPECT_CLI: ${{ steps.plan.outputs.target }}
+          # Only when the CLI is what moved; a pin run installs the CLI that is already pinned.
+          SOKAR_E2E_EXPECT_CLI: ${{ matrix.what == 'cli' && steps.plan.outputs.target || '' }}
         run: |
           java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main acceptance \
               --os fedora --package sokar-agent-pi \
@@ -176,14 +232,14 @@ jobs:
         if: always() && steps.plan.outputs.proceed == 'yes'
         env:
           HETZNER_API: ${{ secrets.HETZNER_API }}
-          SOKAR_CI_LEG: upd-ubuntu
+          SOKAR_CI_LEG: upd-${{ matrix.what }}-ubuntu
         run: java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main sweep --mine || true
 
       - name: Delete what this run created - fedora leg
         if: always() && steps.plan.outputs.proceed == 'yes'
         env:
           HETZNER_API: ${{ secrets.HETZNER_API }}
-          SOKAR_CI_LEG: upd-fedora
+          SOKAR_CI_LEG: upd-${{ matrix.what }}-fedora
         run: java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main sweep --mine || true
 
       # ------------------------------------------------------------------ ask, or publish
@@ -195,6 +251,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TARGET: ${{ steps.plan.outputs.target }}
           WAS: ${{ steps.detect.outputs.pinned }}
+          WHAT: ${{ matrix.what }}
+          LABEL: ${{ steps.what.outputs.label }}
         run: |
           set -eu
           git config user.name 'sokar-update'
@@ -203,16 +261,22 @@ jobs:
               echo "nothing was written - there is no change to propose"
               exit 0
           fi
-          BRANCH="update/pi-$TARGET"
+          BRANCH="update/$WHAT-$TARGET"
           git checkout -b "$BRANCH"
-          git commit -am "Pin Pi $TARGET"
+          git commit -am "Pin $LABEL $TARGET"
           git push --force origin "$BRANCH"
 
           {
-            echo "\`$WAS\` -> \`$TARGET\`, applied by Sokar's release tool: the"
-            echo "\`agent.cli.version\` property, the npm manifest, and the lockfile regenerated"
-            echo "by the pinned npm. Everything else naming the version is filtered from the"
-            echo "property and could not drift."
+            if [ "$WHAT" = "cli" ]; then
+                echo "\`$WAS\` -> \`$TARGET\`, applied by Sokar's release tool: the"
+                echo "\`agent.cli.version\` property, the npm manifest, and the lockfile regenerated"
+                echo "by the pinned npm. Everything else naming the version is filtered from the"
+                echo "property and could not drift."
+            else
+                echo "$LABEL \`$WAS\` -> \`$TARGET\`, applied by Sokar's release tool: the"
+                echo "\`pin.$WHAT.*\` properties in \`pom.xml\`, with the digest read from upstream."
+                echo "\`build-pi-tree.sh\` gets them from there and checks the download against it."
+            fi
             echo
             if [ -n "${STOP:-}" ]; then
                 echo "**This is not ready to publish: $STOP.**"
@@ -238,7 +302,7 @@ jobs:
               gh pr comment "$BRANCH" --body-file /tmp/body.md
               echo "the request for $TARGET was already open - re-verified, and said so on it"
           else
-              gh pr create --title "Pin Pi $TARGET" --body-file /tmp/body.md \
+              gh pr create --title "Pin $LABEL $TARGET" --body-file /tmp/body.md \
                            --head "$BRANCH" --base main
           fi
           echo "opened=yes" >> "$GITHUB_OUTPUT"
@@ -251,6 +315,8 @@ jobs:
           AUTO: ${{ vars.SOKAR_UPDATE_AUTO_MERGE }}
           HAVE_TOKEN: ${{ secrets.SOKAR_UPDATE_TOKEN != '' }}
           TARGET: ${{ steps.plan.outputs.target }}
+          WHAT: ${{ matrix.what }}
+          LABEL: ${{ steps.what.outputs.label }}
         run: |
           set -eu
           if [ -n "${STOP:-}" ]; then
@@ -258,7 +324,7 @@ jobs:
               echo "The branch is open for whoever decides it."
           elif [ "$AUTO" != "true" ]; then
               echo "Not merging: the repository variable SOKAR_UPDATE_AUTO_MERGE is '${AUTO:-unset}'."
-              echo "Everything passed. Merging the pull request publishes Pi $TARGET."
+              echo "Everything passed. Merging the pull request publishes $LABEL $TARGET."
               echo "Set the variable to 'true' when these runs have been watched enough."
           elif [ "$HAVE_TOKEN" != "true" ]; then
               echo "::error::SOKAR_UPDATE_AUTO_MERGE is on but the secret SOKAR_UPDATE_TOKEN is not set."
@@ -266,8 +332,8 @@ jobs:
               echo "published and the run would look successful. Refusing to merge."
               exit 1
           else
-              gh pr merge --merge --delete-branch "update/pi-$TARGET"
-              echo "Merged. The push to main builds and publishes Pi $TARGET."
+              gh pr merge --merge --delete-branch "update/$WHAT-$TARGET"
+              echo "Merged. The push to main builds and publishes $LABEL $TARGET."
           fi
 
       # Red means there is something to look at, and only that.

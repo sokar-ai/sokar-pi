@@ -6,7 +6,6 @@ identity, not sequence.
 | # | Status | Blocked by | What it covers | Open questions |
 |---|---|---|---|---|
 | [PI01](PI01-Pin-GitHub-Actions-By-Sha.md) | handed on | — | Every third-party GitHub Action runs from a mutable tag, beside the tokens that publish packages and open pull requests. | 1 |
-| [PI03](PI03-Automated-Agent-Updates.md) | blocked | Sokar B81, B82 | The update pipeline is built; what it still decides by convention rather than by a stated rule, including a second pin with no detector. | 0 |
 | [PI05](PI05-Declare-What-Waiting-Looks-Like.md) | blocked | Sokar B47 | Declaring what "waiting for a person" looks like in this agent's own output. | 1 |
 | [PI08](PI08-Declare-Where-The-Session-Id-Is.md) | blocked | Sokar B46 | Declaring where this agent's session id is, so a task that comes back continues its conversation. | 2 |
 | [PI04](PI04-Can-Pi-Reach-A-Forge-Subscription.md) | open | — | Whether this agent reaches a forge subscription at all, and whether brokering holds beyond the one dialect it was proven against. | 3 |
@@ -26,8 +25,8 @@ rots silently.
 ## Handed over from Sokar, 2026-09-12
 
 Five agent requirements moved here when the operator ruled that an agent's work lives in its own
-repository. **A02** became the update issue above (one per agent repository rather than one shared
-file), **A11** the waiting one. The per-agent requirements were met: what outlived them is in
+repository. **A02** became an update issue in each agent repository - closed on 2026-09-28, its rules now
+in the decisions record - and **A11** the waiting one. The per-agent requirements were met: what outlived them is in
 [`doc/decisions.md`](../doc/decisions.md), and the files themselves are gone.
 
 `A01` and the candidate agents without a repository stay in sokar, where `issues/agents/` is now

@@ -108,7 +108,7 @@ same facts on every workflow line, and the second copy is the one that goes stal
 **The relock image is the one fact written twice**, because the tool reads the pom uninterpolated:
 `sokar.release.npm.image` spells out the builder that `pin.node.version` and `pin.node.image.digest`
 name. `PinAgreementTest` fails when the two name different images, so a lockfile is never resolved by
-one npm and installed by another.
+one npm and installed by another; a Node move rewrites both in one write.
 
 **At package time the tool is a plugin dependency of the exec plugin**, not a dependency of the
 project, so it never reaches the bill of materials or the native image's classpath.
@@ -118,6 +118,42 @@ the tree's components under the same subject, identical except one description w
 space the tool trims; `upstream-version` answers `rollback` for a dist-tag older than the pin;
 `compare-bills` stops on a component nested in the tree that the update did not name. The relock
 itself is not measured this way - it needs podman.
+
+## What an update takes, and when
+
+The operator decided these on 2026-09-28. Sokar's release tool applies them; `UpdateRulesTest`
+fails when this repository stops asking for them.
+
+**A release is taken once it is three days old, and still the newest**: `sokar.release.min-age` is
+`3d`. A release withdrawn or patched within days never becomes a pull request, and the people who
+install on the first day get the days to report what breaks. A younger release is not skipped for the
+one before it: the job waits and says until when. A release whose date cannot be read is never old
+enough.
+
+**A pin move bumps the package's patch version**, `1.0.0-SNAPSHOT` to `1.0.1-SNAPSHOT`, so a package
+version names what it installs and `apt` sees an upgrade.
+
+**The verifying tier makes a real model call**, with its key in the workflow's secrets - intended, not
+temporary. Published metadata proves the download is intact; only a real request proves the new
+version still starts without a question, reads its credential variable, routes through the broker and
+gets an answer.
+
+**The CI machines are not kept current here.** GraalVM and the pre-pulled base images are Sokar's
+machine tooling, under the same rule, once for every repository.
+
+**Node, `fd` and `ripgrep` are followed by the same job, under the same rule, one pull request each.**
+Each is declared to the tool as `sokar.release.pin.<name>.*`: where a release is read - Node on its LTS
+line 22, the two tools from their newest GitHub release - where its digest is read, and the properties
+a move writes. A Node move also rewrites `sokar.release.npm.image`, which spells out its version and
+image digest, so the relock image cannot part from the builder. `UpdateRulesTest` fails when a tree pin
+is not declared to the tool, or not followed by the job.
+
+**Measured against the tool at the commit that added named pins:** Node 22.20.0 to 22.23.3 wrote the
+digests Node's `SHASUMS256.txt` and Docker Hub give; `fd` and `ripgrep`, moved one release back and
+forward again, came back to exactly the pinned digests; an asset pattern matching two files was refused.
+
+**What would change the answer:** a release that cannot wait three days. Dispatching the job with the
+version named takes it at once - that is the way round the rule, not a change to it.
 
 ## `build-pi-tree.sh` stays a shell script
 
@@ -134,6 +170,7 @@ with more lines and hide them behind a process API. What it must not lose is its
     NODE_SHA256=deadbeef
     PI_BUILDER_IMAGE='node:22; id'
     NODE_IMAGE_DIGEST=deadbeef
+    NODE_IMAGE_DIGEST=<the 64 hex digits without sha256:>
     JAVA_CMD='java; id'
     FD_SHA256=deadbeef
     RG_VERSION='15; id'

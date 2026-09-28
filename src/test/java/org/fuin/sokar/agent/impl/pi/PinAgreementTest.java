@@ -212,7 +212,7 @@ class PinAgreementTest {
         if (!configured.find()) {
             return List.of("pom.xml declares no sokar.release.npm.image");
         }
-        final String builder = "docker.io/library/node:" + pinned(pom, "pin.node.version") + "-slim@sha256:"
+        final String builder = "docker.io/library/node:" + pinned(pom, "pin.node.version") + "-slim@"
                 + pinned(pom, "pin.node.image.digest");
         final String relock = configured.group(1).strip();
         return relock.equals(builder) ? List.of()

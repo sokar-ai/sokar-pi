@@ -17,6 +17,8 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ### Changed
 
+- The update job takes a release once it is three days old, and follows Node, `fd` and `ripgrep` beside Pi, each in its own pull request.
+- The Node builder image's digest is written with its `sha256:`, as the release tool reads and writes it.
 - The Pi tree's pins - the Node runtime, its builder image, `fd` and `ripgrep` - are pom properties, and `build-pi-tree.sh` keeps no default of its own.
 - The Pi tree installs beside the agent binary and is named relative to it, so a copy of the agent in one account's own directory ships that account's tree.
 - The tree build records the Node runtime in its bill with Sokar's release tool, so no build step needs `python3`.

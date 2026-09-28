@@ -24,7 +24,7 @@ TARGET="$MODULE/target/tree"
 for pin in NODE_VERSION NODE_SHA256 NODE_IMAGE_DIGEST FD_VERSION FD_SHA256 RG_VERSION RG_SHA256; do
     [ -n "${!pin:-}" ] || { echo "build-pi-tree: $pin is not set - run this from Maven, which passes the pins from pom.xml" >&2; exit 2; }
 done
-BUILDER="${PI_BUILDER_IMAGE:-docker.io/library/node:${NODE_VERSION}-slim@sha256:${NODE_IMAGE_DIGEST}}"
+BUILDER="${PI_BUILDER_IMAGE:-docker.io/library/node:${NODE_VERSION}-slim@${NODE_IMAGE_DIGEST}}"
 
 # Each of these can be overridden from the environment, and every one of them ends up in a command that
 # runs inside a build container with the shipped tree mounted writable. Checked against a strict
@@ -35,8 +35,8 @@ refuse() { echo "build-pi-tree: $1" >&2; exit 2; }
     || refuse "NODE_VERSION='$NODE_VERSION' is not a version"
 [[ "$NODE_SHA256" =~ ^[0-9a-f]{64}$ ]] \
     || refuse "NODE_SHA256 is not a 64-character lowercase digest"
-[[ "$NODE_IMAGE_DIGEST" =~ ^[0-9a-f]{64}$ ]] \
-    || refuse "NODE_IMAGE_DIGEST is not a 64-character lowercase digest"
+[[ "$NODE_IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] \
+    || refuse "NODE_IMAGE_DIGEST is not sha256: and a 64-character lowercase digest"
 for v in FD_VERSION RG_VERSION; do
     [[ "${!v}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || refuse "$v='${!v}' is not a version"
 done

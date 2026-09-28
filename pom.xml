@@ -58,10 +58,11 @@
              and the two search tools Pi would otherwise download. build-pi-tree.sh gets them from here
              and keeps no default of its own, so the release tool has one place to move each. The builder
              by digest, not tag: npm ci, the Node download and its checksum all run inside it, and a tag is
-             a name its owner may repoint. -->
+             a name its owner may repoint. The image digest keeps its 'sha256:' because that is how the release
+             tool reads it from Docker Hub and writes it back. -->
         <pin.node.version>22.20.0</pin.node.version>
         <pin.node.sha256>eeaccb0378b79406f2208e8b37a62479c70595e20be6b659125eb77dd1ab2a29</pin.node.sha256>
-        <pin.node.image.digest>b21fe589dfbe5cc39365d0544b9be3f1f33f55f3c86c87a76ff65a02f8f5848e</pin.node.image.digest>
+        <pin.node.image.digest>sha256:b21fe589dfbe5cc39365d0544b9be3f1f33f55f3c86c87a76ff65a02f8f5848e</pin.node.image.digest>
         <pin.fd.version>10.5.0</pin.fd.version>
         <pin.fd.sha256>761c72dc8e120d85b22292063be8a796e2eeb20eb3e4f38b8fa2343ccf3514a7</pin.fd.sha256>
         <pin.rg.version>15.2.0</pin.rg.version>
@@ -74,6 +75,33 @@
         <sokar.release.digest>none</sokar.release.digest>
         <sokar.release.npm.package>@earendil-works/pi-coding-agent</sokar.release.npm.package>
         <sokar.release.npm.image>docker.io/library/node:22.20.0-slim@sha256:b21fe589dfbe5cc39365d0544b9be3f1f33f55f3c86c87a76ff65a02f8f5848e</sokar.release.npm.image>
+        <!-- The operator's rule: a release is taken once it is three days old, for the CLI and every pin. -->
+        <sokar.release.min-age>3d</sokar.release.min-age>
+
+        <!-- Each tree pin, moved on its own by naming it to the release tool's update. Where a release is read,
+             where its digest is read, and which properties a move writes. Node's move also rewrites the
+             relock image, which spells out its version and image digest. -->
+        <sokar.release.pin.node.label>Node</sokar.release.pin.node.label>
+        <sokar.release.pin.node.property>pin.node.version</sokar.release.pin.node.property>
+        <sokar.release.pin.node.upstream>node-lts https://nodejs.org/dist/index.json</sokar.release.pin.node.upstream>
+        <sokar.release.pin.node.channel>22</sokar.release.pin.node.channel>
+        <sokar.release.pin.node.digest>sums https://nodejs.org/dist/v{version}/SHASUMS256.txt node-v{version}-linux-x64.tar.gz</sokar.release.pin.node.digest>
+        <sokar.release.pin.node.sha256>pin.node.sha256</sokar.release.pin.node.sha256>
+        <sokar.release.pin.node.image>https://hub.docker.com/v2/repositories/library/node/tags/{version}-slim</sokar.release.pin.node.image>
+        <sokar.release.pin.node.image-property>pin.node.image.digest</sokar.release.pin.node.image-property>
+        <sokar.release.pin.node.follows>sokar.release.npm.image</sokar.release.pin.node.follows>
+
+        <sokar.release.pin.fd.label>fd</sokar.release.pin.fd.label>
+        <sokar.release.pin.fd.property>pin.fd.version</sokar.release.pin.fd.property>
+        <sokar.release.pin.fd.upstream>github-latest https://api.github.com/repos/sharkdp/fd/releases/latest</sokar.release.pin.fd.upstream>
+        <sokar.release.pin.fd.digest>github-asset https://api.github.com/repos/sharkdp/fd/releases/tags/v{version} fd-v[0-9.]+-x86_64-unknown-linux-musl\.tar\.gz</sokar.release.pin.fd.digest>
+        <sokar.release.pin.fd.sha256>pin.fd.sha256</sokar.release.pin.fd.sha256>
+
+        <sokar.release.pin.rg.label>ripgrep</sokar.release.pin.rg.label>
+        <sokar.release.pin.rg.property>pin.rg.version</sokar.release.pin.rg.property>
+        <sokar.release.pin.rg.upstream>github-latest https://api.github.com/repos/BurntSushi/ripgrep/releases/latest</sokar.release.pin.rg.upstream>
+        <sokar.release.pin.rg.digest>github-asset https://api.github.com/repos/BurntSushi/ripgrep/releases/tags/{version} ripgrep-[0-9.]+-x86_64-unknown-linux-musl\.tar\.gz</sokar.release.pin.rg.digest>
+        <sokar.release.pin.rg.sha256>pin.rg.sha256</sokar.release.pin.rg.sha256>
 
         <!-- The published contract this builds against. Nothing else of Sokar's is on the
              classpath, and no checkout of the sokar repository is needed to build here. -->
