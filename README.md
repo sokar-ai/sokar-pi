@@ -16,7 +16,7 @@ or [Fedora and RHEL](https://github.com/sokar-ai/sokar/blob/main/doc/getting-sta
 sudo apt install sokar-agent-pi      # or: sudo dnf install sokar-agent-pi
 ```
 
-**This package is large - about 79 MB** - because it carries Pi and a Node runtime
+**This package is large - about 75 MB** - because it carries Pi and a Node runtime
 rather than downloading them. That is deliberate: a task image is then built with no
 network access at all, and the same package cannot install different bytes on
 different days.
@@ -38,8 +38,7 @@ Harness — installed from npm as `@earendil-works/pi-coding-agent` and run as
 
 **Not [Oh My Pi](https://github.com/can1357/oh-my-pi).** That is a separate
 project, a fork of a different Pi, published as `@oh-my-pi/pi-coding-agent` and
-run as `omp`. Nothing here installs it. The two were confused in the
-requirements until 2026-09-05; the code never was.
+run as `omp`. Nothing here installs it.
 
 Two different things get called "the agent", and the difference matters when
 something goes wrong:
@@ -53,7 +52,7 @@ something goes wrong:
 a Node runtime, with no single URL to pin, so verification happens once where the
 package is built — against a lockfile pinning every dependency by integrity hash
 — and the image build then downloads nothing at all. That makes the package about
-70 MB instead of 6, which is the trade: see [your tooling](../../your-tooling.md).
+75 MB instead of 6, which is the trade: see [how it is built](build.md).
 
 ## Storing the credential
 
@@ -67,7 +66,7 @@ printf '%s' 'sk-or-…' | sokar vault put openrouter
 ```
 
 Unlock **first**: `vault put` reads the credential from standard input, so it has
-nothing left to read a passphrase from. The name must be `pi` — Sokar looks the
+nothing left to read a passphrase from. The name is `openrouter` — Sokar looks the
 credential up by the **provider's** name, not this agent's. That is what lets a
 second agent reaching OpenRouter use the same entry instead of storing another
 copy of the same secret. Use `printf`, not `echo`, or a newline becomes part of
@@ -121,8 +120,7 @@ So the **listening end** moves into the task's network namespace:
 unix socket on the host. It resolves nothing and connects to nothing but a local
 file.
 
-**The broker itself stays on the host.** Putting it in the namespace was tried
-and fails: it keeps the host's *mount* namespace, so it reads the host's
+**The broker itself stays on the host.** Putting it in the namespace fails: it keeps the host's *mount* namespace, so it reads the host's
 `/etc/resolv.conf`, finds a resolver that does not exist there, and every request
 fails as "could not reach the provider". Its egress would also have been governed
 by the task's own firewall rather than the host's.
@@ -143,7 +141,8 @@ unlike Claude Code.
 
 ## Bumping the CLI version
 
-Four edits today, in four files, with nothing checking that they agree:
+Four edits, in four files. `PinAgreementTest` fails the build when the first three do not name
+one version; the Node runtime is its own axis:
 
 | file | what |
 |---|---|

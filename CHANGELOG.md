@@ -40,6 +40,7 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ### Added
 
+- The build refuses a main package that is not null-marked, so NullAway cannot skip one in silence.
 - The compile checks the package's nullness contract with NullAway, so returning null where a type promises a value fails the build.
 - The build refuses an issue number that names no issue, so a citation in prose cannot outlive the issue it points at.
 - The build refuses a link to an issue file from anywhere but the index, so a pointer cannot outlive the issue it names.

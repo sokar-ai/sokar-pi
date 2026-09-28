@@ -29,7 +29,7 @@ here, and the toolchain is a stated version rather than whatever the machine has
 Without podman the script says so and skips, and the package is then incomplete.
 
 That tree is why this build takes minutes where a single-binary agent takes seconds,
-and why the package is about 79 MB. It is shipped rather than fetched so a task image
+and why the package is about 75 MB. It is shipped rather than fetched so a task image
 builds with no network access at all, and so the same package cannot install different
 bytes on different days: `npm ci` against a lockfile that pins every dependency by
 integrity hash, verified once here rather than on every image build.
@@ -73,7 +73,7 @@ answerable from the installed adapter rather than from a build log.
 `git log` is where anyone who wants the reasoning goes.
 
 A version bump is not written by hand: the `update` of Sokar's release tool writes its own line and replaces
-the one it wrote last time. Everything else is by hand, and since 2026-09-13 nothing checks for
+the one it wrote last time. Everything else is by hand, and nothing checks for
 it; requiring an entry returns with Sokar B55 - see [`doc/decisions.md`](doc/decisions.md).
 
 ## Following Pi without watching it
@@ -83,7 +83,7 @@ it; requiring an entry returns with Sokar B55 - see [`doc/decisions.md`](doc/dec
 the release tool's `update`, rebuild, and prove the result on a real Ubuntu machine and a real Fedora one
 **before anything is published**.
 
-**A Pi bump is four files, not two**, which is what made this agent the awkward one to automate:
+**A Pi bump is four files, not two**, which makes this agent the awkward one to automate:
 the npm manifest, the regenerated lockfile, the `agent.cli.version` property, and the changelog.
 The tool's `update` does all four, configured from the `sokar.release.*` properties in `pom.xml`;
 `PinAgreementTest` keeps the image it relocks in the one the tree is built in.
@@ -143,7 +143,7 @@ rootless, so running the suite as root would prove less), runs the suite and des
 server in a `finally`. A `cpx12` is enough - one core and 2 GB, because this installs
 packages and runs a single prompt.
 
-Both distributions, because they differ in ways that have already caused bugs: the `.deb`
+Both distributions, because they differ in ways that break things: the `.deb`
 path and AppArmor on Ubuntu against the `.rpm` path and SELinux enforcing on Fedora. Ubuntu
 26.04, not 24.04 - Sokar needs podman 5, and 24.04 ships 4.9.3 for the whole of its life.
 
@@ -215,8 +215,8 @@ this repository free of test code that knows about ssh.
 vault brings its own - a temporary file and a passphrase the scenario states - and the kit then checks
 the passphrase never appears on screen. The rented machine's account is named `acceptance`, and
 Ubuntu 26.04's shell integration prints `user=acceptance` in its escape sequences, so a passphrase of
-`acceptance` reads as echoed. That failed every such scenario on Hetzner on 2026-09-27 while the VMs,
-whose account is `claude`, stayed green.
+`acceptance` reads as echoed and fails every such scenario on a rented machine, while on the VMs,
+whose account is `claude`, the same scenario passes.
 
 In CI the same suite runs from the runner against the rented machine on every push to `main`.
 A run that produces no scenarios fails rather than passing quietly.

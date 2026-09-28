@@ -6,6 +6,7 @@ identity, not sequence.
 | # | Status | Blocked by | What it covers | Open questions |
 |---|---|---|---|---|
 | [PI06](PI06-Check-What-Pi-Asks-At-First-Run.md) | open | — | Whether a fresh task shows anything besides the trust question before Pi starts work. Never checked. | 1 |
+| [PI19](PI19-The-Tree-Follows-Where-The-Agent-Is-Installed.md) | blocked | Sokar `1b676e9` on Central | The image copies the machine's tarball even when an account runs its own copy of the agent. | 0 |
 | [PI13](PI13-The-Built-Runtime-Is-Never-Asked-In-CI.md) | open | — | The built Node runtime's version is never asked in CI, because the tree does not exist yet when the check runs. | 1 |
 | [PI01](PI01-Pin-GitHub-Actions-By-Sha.md) | handed on | — | Every third-party GitHub Action runs from a mutable tag, beside the tokens that publish packages and open pull requests. | 1 |
 | [PI03](PI03-Automated-Agent-Updates.md) | open | — | The update pipeline is built; what it still decides by convention rather than by a stated rule, including a second pin with no detector. | 5 |
