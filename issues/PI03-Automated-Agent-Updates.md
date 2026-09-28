@@ -18,19 +18,31 @@ changes what third-party code ships.
 So this issue is not "build the pipeline". It is the set of questions the pipeline still answers by
 convention rather than by a stated rule.
 
-## What is still open
+## Decided
 
-- **Can the verifying tier's credential live in CI?** Without it the automation checks less than a
-  person does by hand, which is a worse gate wearing the appearance of a better one.
-- **What version does the agent package take when only the tool it installs moved?** The two were
-  separated deliberately. A bot needs a stated rule rather than a guess.
-- **Is the pointer this repository follows the right one?** It follows the npm dist-tag `latest`, because there is no `stable`. Nothing states how old a release must be before it is picked up.
-- **How do the CI snapshots get refreshed when GraalVM or the base image moves?** The machines pin
-  GraalVM by digest and pre-pull base images, so following an upstream release there means
-  rebuilding an image rather than editing a version.
-- **The Node runtime and the Pi CLI move independently.** The runtime's version and digest are now
-  checked, but nothing decides *when* to follow a Node release. That is a second pin with no
-  detector - and `fd` and `ripgrep`, pinned the same way in `build-pi-tree.sh`, are two more.
+- **The verifying tier makes a real model call, and its key lives in the workflow's secrets** - intended,
+  not temporary. Published metadata proves the download is intact; only a real request proves the new
+  version still starts without a question, reads its credential variable, routes through the broker
+  and gets an answer. The ready and dialog checks run beside it.
+- **When only the pinned CLI moves, the package's patch version is bumped**, so a package version names
+  the CLI it installs.
+- **A release is taken once it is three days old** and still the newest.
+- **The Node runtime, `fd` and `ripgrep` are watched by the same job, under the same rule** - Node on
+  its LTS line - one pull request per moved pin.
+
+## Waits on
+
+- **Sokar B81** ([index](https://github.com/sokar-ai/sokar/blob/main/issues/base/README.md)) - Sokar's
+  release tool taking a release once it has aged, with a date for every upstream kind, bumping
+  `x.y.z-SNAPSHOT` to `x.y.(z+1)-SNAPSHOT` when it moves the pin, and moving named pins.
+- **Sokar B82** (same index) - `sokar-machines` keeping the CI machines current: GraalVM and the
+  pre-pulled base images, under the same rule, once for every repository.
+
+The tree's pins are already pom properties (`pin.node.*`, `pin.fd.*`, `pin.rg.*`), which B81's named
+pins move; `build-pi-tree.sh` keeps no default of its own.
+
+Once B81 is built, this repository's update job passes the three-day bound and, where it has them,
+asks for each named pin; the rest is Sokar's.
 
 ## What would close it
 

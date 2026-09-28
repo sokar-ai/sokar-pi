@@ -149,7 +149,7 @@ one version; the Node runtime is its own axis:
 | `pom.xml` | `agent.cli.version`, filtered into `pi.yaml` |
 | `src/main/npm/package.json` | the same version again, for npm |
 | `src/main/npm/package-lock.json` | regenerated, carrying an integrity hash per package |
-| `buildtools/build-pi-tree.sh` | `NODE_VERSION` and `NODE_SHA256`, the runtime shipped beside it |
+| `pom.xml` | `pin.node.*`, `pin.fd.*`, `pin.rg.*` - the runtime, its builder image and the search tools shipped beside it, which `build-pi-tree.sh` gets from Maven |
 
 The Node tarball is checked against the digest nodejs.org publishes beside it, so
 that half is verifiable rather than trusted. `npm ci` — never `npm install` —

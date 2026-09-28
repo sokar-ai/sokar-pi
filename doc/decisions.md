@@ -105,11 +105,10 @@ repositories. Copies of the same tools in each repository drift apart.
 the package name and the Node image the lockfile is resolved in. Flags on each call would put the
 same facts on every workflow line, and the second copy is the one that goes stale.
 
-**The relock image is the one fact written twice**, because the tool reads the pom uninterpolated
-and `build-pi-tree.sh` pins `NODE_VERSION` for the tree build. `PinAgreementTest` fails when the two
-name different images, so a lockfile is never resolved by one npm and installed by another. Moving
-the pin into the pom and passing it to the script would remove the copy; it is not done because the
-script's own guards and their tests read its defaults.
+**The relock image is the one fact written twice**, because the tool reads the pom uninterpolated:
+`sokar.release.npm.image` spells out the builder that `pin.node.version` and `pin.node.image.digest`
+name. `PinAgreementTest` fails when the two name different images, so a lockfile is never resolved by
+one npm and installed by another.
 
 **At package time the tool is a plugin dependency of the exec plugin**, not a dependency of the
 project, so it never reaches the bill of materials or the native image's classpath.
@@ -123,8 +122,8 @@ itself is not measured this way - it needs podman.
 ## `build-pi-tree.sh` stays a shell script
 
 The build is Java and Maven, and a file that is not says why. This one runs `npm ci` and the bill
-generator inside a builder container pinned by digest through podman, validates five overridable
-inputs, and packs the tree. Every step is a process call; a Java version would make the same calls
+generator inside a builder container pinned by digest through podman, validates the pins Maven passes
+in and its own overrides, and packs the tree. Every step is a process call; a Java version would make the same calls
 with more lines and hide them behind a process API. What it must not lose is its input guards.
 
 **Its regression matrix.** Each of these must be refused with exit 2, executing nothing:
@@ -136,6 +135,9 @@ with more lines and hide them behind a process API. What it must not lose is its
     PI_BUILDER_IMAGE='node:22; id'
     NODE_IMAGE_DIGEST=deadbeef
     JAVA_CMD='java; id'
+    FD_SHA256=deadbeef
+    RG_VERSION='15; id'
+    any pin unset (the script keeps no default)
 
 Whoever changes the script runs the matrix and records the result in the commit.
 

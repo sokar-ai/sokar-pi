@@ -18,20 +18,13 @@ MODULE="$(cd "$(dirname "$0")/.." && pwd)"
 # Sokar's release tool, on the classpath Maven passes as the only argument; it records Node below.
 RELEASE_CLASSPATH="${1:-}"
 TARGET="$MODULE/target/tree"
-NODE_VERSION="${NODE_VERSION:-22.20.0}"
-NODE_SHA256="${NODE_SHA256:-eeaccb0378b79406f2208e8b37a62479c70595e20be6b659125eb77dd1ab2a29}"
-# The builder by digest, not tag: npm ci, the Node download and its checksum all run inside it, and a
-# tag is a name its owner may repoint. The multi-arch index of node:22.20.0-slim, read 2026-09-27.
-NODE_IMAGE_DIGEST="${NODE_IMAGE_DIGEST:-b21fe589dfbe5cc39365d0544b9be3f1f33f55f3c86c87a76ff65a02f8f5848e}"
+# The pins - the Node runtime, the builder image it is built in by digest, fd and ripgrep - come from
+# pom.xml, which Maven passes in; this script keeps no default of its own, so nothing here can drift
+# from what the release tool moves. Run it from Maven.
+for pin in NODE_VERSION NODE_SHA256 NODE_IMAGE_DIGEST FD_VERSION FD_SHA256 RG_VERSION RG_SHA256; do
+    [ -n "${!pin:-}" ] || { echo "build-pi-tree: $pin is not set - run this from Maven, which passes the pins from pom.xml" >&2; exit 2; }
+done
 BUILDER="${PI_BUILDER_IMAGE:-docker.io/library/node:${NODE_VERSION}-slim@sha256:${NODE_IMAGE_DIGEST}}"
-# The two search tools Pi otherwise downloads from GitHub at every start - fd for @-file
-# autocomplete, rg for its grep tool - which a task cannot reach. The musl builds Pi itself would
-# fetch, pinned by digest: rg's is the .sha256 it publishes, fd's the digest GitHub reports for
-# the asset, each equal to the bytes downloaded.
-FD_VERSION="${FD_VERSION:-10.5.0}"
-FD_SHA256="${FD_SHA256:-761c72dc8e120d85b22292063be8a796e2eeb20eb3e4f38b8fa2343ccf3514a7}"
-RG_VERSION="${RG_VERSION:-15.2.0}"
-RG_SHA256="${RG_SHA256:-33e15bcf1624b25cdd2a55813a47a2f95dbe126268203e76aa6a585d1e7b149c}"
 
 # Each of these can be overridden from the environment, and every one of them ends up in a command that
 # runs inside a build container with the shipped tree mounted writable. Checked against a strict

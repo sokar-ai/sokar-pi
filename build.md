@@ -61,7 +61,8 @@ cd src/main/npm && npm install --package-lock-only
 
 Nothing is fetched at image-build time: the tree is inside the package, so a task image
 builds with no network access at all. The Node runtime is pinned separately, by version
-and SHA-256, at the top of `buildtools/build-pi-tree.sh`. So are `fd` and `ripgrep`, the musl builds Pi
+and SHA-256, as `pin.node.*` properties in the pom, which `build-pi-tree.sh` gets from Maven and keeps no
+default of. So are `fd` and `ripgrep` (`pin.fd.*`, `pin.rg.*`), the musl builds Pi
 would otherwise download from GitHub at every start - `fd` for `@`-file autocomplete, `rg` for its
 grep tool - and they are linked onto `PATH` in the image, where Pi looks first.
 
@@ -96,7 +97,7 @@ one npm and installed by another is the thing `npm ci` exists to prevent. The ol
 in first, so unrelated dependencies keep the versions they had and the diff is the change that
 was asked for.
 
-**The Node runtime is a different axis and is not touched.** `NODE_VERSION` and `NODE_SHA256`
+**The Node runtime is a different axis and is not touched.** `pin.node.version` and `pin.node.sha256`
 pin what the tree is built against and shipped with; moving Pi is not a reason to move Node, and
 doing both at once would make a failure ambiguous.
 

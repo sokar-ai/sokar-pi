@@ -33,18 +33,18 @@ class BuiltTreeCheck {
 
         // The runtime's digest is checked when it is fetched; this asks the one in the package what it is.
         assertThat(PinAgreementTest.reportDisagreements(version(NODE),
-                PinAgreementTest.reviewedDefault(PinAgreementTest.script(), "NODE_VERSION"))).isEmpty();
+                PinAgreementTest.pinned(PinAgreementTest.pom(), "pin.node.version"))).isEmpty();
     }
 
     @Test
     void theShippedSearchToolsReportThePinnedVersions() throws IOException, InterruptedException {
 
         // Pi downloads them when they are missing, which a task cannot; these are the ones it finds.
-        final String script = PinAgreementTest.script();
+        final String pom = PinAgreementTest.pom();
         assertThat(version(TREE.resolve("tools/bin/fd")))
-                .isEqualTo("fd " + PinAgreementTest.reviewedDefault(script, "FD_VERSION"));
+                .isEqualTo("fd " + PinAgreementTest.pinned(pom, "pin.fd.version"));
         assertThat(version(TREE.resolve("tools/bin/rg")))
-                .startsWith("ripgrep " + PinAgreementTest.reviewedDefault(script, "RG_VERSION") + " ");
+                .startsWith("ripgrep " + PinAgreementTest.pinned(pom, "pin.rg.version") + " ");
     }
 
     @Test

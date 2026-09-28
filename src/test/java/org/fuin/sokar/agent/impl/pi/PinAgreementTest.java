@@ -39,7 +39,11 @@ class PinAgreementTest {
 
     private static final Path BUILD_SCRIPT = Path.of("buildtools/build-pi-tree.sh");
 
-    private static final List<String> RUNTIME = List.of("NODE_VERSION", "NODE_SHA256", "NODE_IMAGE_DIGEST");
+    private static final List<String> TREE_PINS = List.of("pin.node.version", "pin.node.sha256", "pin.node.image.digest",
+            "pin.fd.version", "pin.fd.sha256", "pin.rg.version", "pin.rg.sha256");
+
+    private static final List<String> SCRIPT_PINS = List.of("NODE_VERSION", "NODE_SHA256", "NODE_IMAGE_DIGEST",
+            "FD_VERSION", "FD_SHA256", "RG_VERSION", "RG_SHA256");
 
     private static final Pattern VERSION =
             Pattern.compile("^\\s*version:\\s*\"?([^\"\\n]+)\"?\\s*$", Pattern.MULTILINE);
@@ -98,33 +102,32 @@ class PinAgreementTest {
     }
 
     @Test
-    void theRuntimeIsTheReviewedOne() throws IOException {
+    void theTreesPinsAreAllInThePom() throws IOException {
 
-        assertThat(runtimeDisagreements(script(), System.getenv())).isEmpty();
+        assertThat(runtimeDisagreements(pom())).isEmpty();
     }
 
     @Test
-    void refusesARuntimeOverriddenFromTheEnvironment() throws IOException {
+    void refusesAPomWithoutAPinTheTreeNeeds() throws IOException {
 
-        // An override is not forbidden for a developer trying something; it is forbidden silently,
-        // because the package would then carry a runtime nobody reviewed while every pin stayed green.
-        assertThat(runtimeDisagreements(script(), Map.of("NODE_VERSION", "23.0.0"))).singleElement().asString()
-                .contains("NODE_VERSION is overridden");
+        final String pom = pom().replaceFirst("(?m)^\\s*<pin\\.node\\.sha256>.*$", "");
+
+        assertThat(runtimeDisagreements(pom)).singleElement().asString().contains("pin.node.sha256");
     }
 
     @Test
-    void refusesABuildScriptWithoutAReviewedDefault() throws IOException {
+    void theBuildScriptKeepsNoPinOfItsOwn() throws IOException {
 
-        final String script = script().replaceFirst("(?m)^NODE_SHA256=.*$", "");
-
-        assertThat(runtimeDisagreements(script, Map.of())).singleElement().asString()
-                .contains("no default for NODE_SHA256");
+        // One place for each pin, the pom, which the release tool moves: a default in the script would be
+        // a second copy that quietly goes stale, and an override the environment could slip in.
+        assertThat(scriptDefaults(script())).isEmpty();
+        assertThat(scriptDefaults("NODE_VERSION=\"${NODE_VERSION:-22.0.0}\"\n")).containsExactly("NODE_VERSION");
     }
 
     @Test
     void theUpdateRelocksInTheImageTheTreeIsBuiltIn() throws IOException {
 
-        assertThat(relockImageDisagreements(pom(), script())).isEmpty();
+        assertThat(relockImageDisagreements(pom())).isEmpty();
     }
 
     @Test
@@ -132,10 +135,9 @@ class PinAgreementTest {
 
         // A tag is a name its owner may repoint, and npm ci, the Node download and its checksum all
         // run inside that image: whoever repoints it controls the checks that protect the package.
-        final String script = script().replaceFirst("(?m)^NODE_IMAGE_DIGEST=.*$", "");
+        final String pom = pom().replaceFirst("(?m)^\\s*<pin\\.node\\.image\\.digest>.*$", "");
 
-        assertThat(runtimeDisagreements(script, Map.of())).singleElement().asString()
-                .contains("no default for NODE_IMAGE_DIGEST");
+        assertThat(runtimeDisagreements(pom)).singleElement().asString().contains("pin.node.image.digest");
     }
 
     @Test
@@ -147,7 +149,7 @@ class PinAgreementTest {
         final String pom = RELOCK_IMAGE.matcher(pom())
                 .replaceFirst("<sokar.release.npm.image>docker.io/library/node:23.0.0-slim</sokar.release.npm.image>");
 
-        assertThat(relockImageDisagreements(pom, script())).singleElement().asString()
+        assertThat(relockImageDisagreements(pom)).singleElement().asString()
                 .contains("node:23.0.0-slim");
     }
 
@@ -202,45 +204,55 @@ class PinAgreementTest {
      * Returns every way the image the update relocks in differs from the one the tree is built in.
      *
      * @param pom Content of {@code pom.xml}.
-     * @param script Content of {@code build-pi-tree.sh}.
      * @return One sentence per disagreement; empty when they are the same image.
      */
-    static List<String> relockImageDisagreements(final String pom, final String script) {
+    static List<String> relockImageDisagreements(final String pom) {
 
         final Matcher configured = RELOCK_IMAGE.matcher(pom);
         if (!configured.find()) {
             return List.of("pom.xml declares no sokar.release.npm.image");
         }
-        final String builder = "docker.io/library/node:" + reviewedDefault(script, "NODE_VERSION") + "-slim@sha256:"
-                + reviewedDefault(script, "NODE_IMAGE_DIGEST");
+        final String builder = "docker.io/library/node:" + pinned(pom, "pin.node.version") + "-slim@sha256:"
+                + pinned(pom, "pin.node.image.digest");
         final String relock = configured.group(1).strip();
         return relock.equals(builder) ? List.of()
                 : List.of("the update relocks in " + relock + ", build-pi-tree.sh builds in " + builder);
     }
 
     /**
-     * Returns every way the Node runtime would not be the reviewed one.
+     * Returns every pin of the tree the pom does not carry.
      *
-     * @param script Content of {@code build-pi-tree.sh}.
-     * @param environment The environment the build would run with.
-     * @return One sentence per disagreement; empty when the runtime is the reviewed one.
+     * @param pom Content of {@code pom.xml}.
+     * @return One sentence per missing pin; empty when all are there.
      */
-    static List<String> runtimeDisagreements(final String script, final Map<String, String> environment) {
+    static List<String> runtimeDisagreements(final String pom) {
 
         final List<String> problems = new ArrayList<>();
-        for (final String name : RUNTIME) {
-            final String reviewed = reviewedDefault(script, name);
-            if (reviewed == null) {
-                problems.add("build-pi-tree.sh declares no default for " + name);
-                continue;
-            }
-            final String given = environment.get(name);
-            if (given != null && !given.equals(reviewed)) {
-                problems.add(name + " is overridden in the environment - the package would not carry the reviewed "
-                        + "runtime");
+        for (final String name : TREE_PINS) {
+            if (pinned(pom, name) == null) {
+                problems.add("pom.xml pins no " + name + " - build-pi-tree.sh would refuse to run");
             }
         }
         return problems;
+    }
+
+    /**
+     * Returns the names of pins the build script defaults itself, as {@code NAME="${NAME:-value}"}.
+     * <p>
+     * Only the pins: {@code JAVA_CMD} and the builder override fall back on purpose and are not pins.
+     *
+     * @param script Content of {@code build-pi-tree.sh}.
+     * @return The names; empty when the script keeps none.
+     */
+    static List<String> scriptDefaults(final String script) {
+        final List<String> names = new ArrayList<>();
+        final Matcher matcher = Pattern.compile("^([A-Z0-9_]+)=\"\\$\\{\\1:-[^}]*\\}\"", Pattern.MULTILINE).matcher(script);
+        while (matcher.find()) {
+            if (SCRIPT_PINS.contains(matcher.group(1))) {
+                names.add(matcher.group(1));
+            }
+        }
+        return names;
     }
 
     /**
@@ -256,10 +268,17 @@ class PinAgreementTest {
                 : List.of("the built runtime reports " + reported + ", the build script pins v" + version);
     }
 
-    static String reviewedDefault(final String script, final String name) {
-        final Matcher matcher = Pattern.compile("^" + name + "=\"\\$\\{" + name + ":-([^}]+)\\}\"", Pattern.MULTILINE)
-                .matcher(script);
-        return matcher.find() ? matcher.group(1) : null;
+    /**
+     * Returns a pom property's value.
+     *
+     * @param pom Content of {@code pom.xml}.
+     * @param name The property.
+     * @return Its value, or {@code null} when the pom has none.
+     */
+    static String pinned(final String pom, final String name) {
+        final Matcher matcher = Pattern.compile("<" + Pattern.quote(name) + ">([^<]+)</" + Pattern.quote(name) + ">")
+                .matcher(pom);
+        return matcher.find() ? matcher.group(1).strip() : null;
     }
 
     private static Map<?, ?> map(final Object value) {
@@ -273,7 +292,7 @@ class PinAgreementTest {
         }
     }
 
-    private static String pom() throws IOException {
+    static String pom() throws IOException {
         return Files.readString(Path.of("pom.xml"));
     }
 
