@@ -1,7 +1,6 @@
 package org.fuin.sokar.agent.impl.pi;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,7 +10,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.fuin.sokar.wire.Json;
@@ -40,8 +38,6 @@ class PinAgreementTest {
     private static final Path LOCKFILE = Path.of("src/main/npm/package-lock.json");
 
     private static final Path BUILD_SCRIPT = Path.of("buildtools/build-pi-tree.sh");
-
-    private static final Path BUILT_NODE = Path.of("target/tree/node/bin/node");
 
     private static final List<String> RUNTIME = List.of("NODE_VERSION", "NODE_SHA256", "NODE_IMAGE_DIGEST");
 
@@ -156,31 +152,6 @@ class PinAgreementTest {
     }
 
     @Test
-    void theBuiltRuntimeReportsThePinnedVersion() throws IOException, InterruptedException {
-
-        // Only where a tree has been built. The unit phase runs before the tree is built, so on a
-        // clean checkout this is skipped - reported as skipped, not passed.
-        assumeTrue(Files.isExecutable(BUILT_NODE), "no built tree at " + BUILT_NODE);
-
-        // To a file rather than a pipe: reading a pipe to its end would wait out a hang, not the timeout.
-        final Path out = Files.createTempFile("node-version", ".txt");
-        final String reported;
-        try {
-            final Process node = new ProcessBuilder(BUILT_NODE.toString(), "--version").redirectErrorStream(true)
-                    .redirectOutput(out.toFile()).start();
-            if (!node.waitFor(30, TimeUnit.SECONDS)) {
-                node.destroyForcibly();
-                throw new AssertionError("node --version did not finish within 30 seconds");
-            }
-            reported = Files.readString(out, StandardCharsets.UTF_8).strip();
-        } finally {
-            Files.deleteIfExists(out);
-        }
-
-        assertThat(reportDisagreements(reported, reviewedDefault(script(), "NODE_VERSION"))).isEmpty();
-    }
-
-    @Test
     void refusesABuiltRuntimeThatReportsAnotherVersion() {
 
         assertThat(reportDisagreements("v23.0.0", "22.20.0")).singleElement().asString()
@@ -285,7 +256,7 @@ class PinAgreementTest {
                 : List.of("the built runtime reports " + reported + ", the build script pins v" + version);
     }
 
-    private static String reviewedDefault(final String script, final String name) {
+    static String reviewedDefault(final String script, final String name) {
         final Matcher matcher = Pattern.compile("^" + name + "=\"\\$\\{" + name + ":-([^}]+)\\}\"", Pattern.MULTILINE)
                 .matcher(script);
         return matcher.find() ? matcher.group(1) : null;
@@ -314,7 +285,7 @@ class PinAgreementTest {
         return Files.readString(LOCKFILE);
     }
 
-    private static String script() throws IOException {
+    static String script() throws IOException {
         return Files.readString(BUILD_SCRIPT);
     }
 }

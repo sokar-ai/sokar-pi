@@ -61,6 +61,7 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ### Fixed
 
+- The check that the shipped Node runtime reports its pinned version runs in every package build instead of skipping, and asks the shipped `fd` and `ripgrep` theirs too.
 - With one prompt open over another, the status file names the prompt still waiting once the inner one closes, rather than the one that closed.
 - The native binary starts on any x86-64 CPU; it needed AVX2, so on a pre-Haswell host or a VM with a conservative CPU model the package installed and then would not start.
 - The packages declare the glibc (2.34) and zlib the native binary links against, and the build fails when the binary needs more.

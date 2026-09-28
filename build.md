@@ -109,8 +109,12 @@ and that is exactly the kind of change a person has to look at.
 `PinAgreementTest` runs with the unit tests on every build and needs no network: the definition,
 the pom, `package.json` and the lockfile must name one version, and the lockfile is the one that
 decides, because `npm ci` installs the lockfile and ignores what the manifest asked for. It also
-refuses a Node runtime overridden from the environment, and asks the built runtime its version
-where a tree has been built.
+refuses a Node runtime overridden from the environment.
+
+`BuiltTreeCheck` asks the tree itself, after `-Pdist` has built it: the Node runtime and the shipped
+`fd` and `ripgrep` must report the versions `build-pi-tree.sh` pins, and the status extension runs on
+that Node. Failsafe runs it at `integration-test`; the unit phase comes before the tree exists. A run
+of that profile without a tree fails it rather than skipping it.
 
 ## Publishing
 

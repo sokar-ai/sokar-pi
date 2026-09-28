@@ -187,8 +187,8 @@ the same response as the file - but the value was taken from that service, so it
 trusted that service.
 
 **Why it is accepted:** the digest is a reviewed constant in a file that changes only through a
-commit, and `PinAgreementTest` refuses an environment override and asks the runtime that was
-actually built what version it is. An attacker would have to have compromised nodejs.org at the
+commit, `PinAgreementTest` refuses an environment override, and `BuiltTreeCheck` asks the runtime
+that was actually built what version it is, in every package build. An attacker would have to have compromised nodejs.org at the
 moment the pin was first recorded, and the pin would then still be stable and auditable.
 
 **What would change it:** verifying the Node release signature (the project publishes signed

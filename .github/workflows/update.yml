@@ -109,10 +109,12 @@ jobs:
         run: |
           ./mvnw -B -s settings.xml verify || echo "STOP=the unit suite failed" >> "$GITHUB_ENV"
 
+      # Not -DskipTests: it would skip the checks that need the binary and the built tree, which are
+      # what a new version most needs asked.
       - name: Native binary and packages
         if: steps.plan.outputs.proceed == 'yes' && !env.STOP
         run: |
-          ./mvnw -B -s settings.xml -Pnative,dist verify -DskipTests \
+          ./mvnw -B -s settings.xml -Pnative,dist verify \
               -Dagent.snapshot.run=${{ github.run_number }} \
               || echo "STOP=the packages did not build" >> "$GITHUB_ENV"
 

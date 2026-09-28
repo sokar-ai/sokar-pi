@@ -414,6 +414,21 @@
                                     </systemPropertyVariables>
                                 </configuration>
                             </execution>
+                            <!-- What only the built tree can answer. Here rather than in the unit phase, which
+                                 runs before prepare-package has built the tree and so could only ever skip. -->
+                            <execution>
+                                <id>built-tree</id>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                                <configuration>
+                                    <includes>
+                                        <include>**/BuiltTreeCheck.java</include>
+                                    </includes>
+                                    <summaryFile>${project.build.directory}/failsafe-reports/failsafe-summary-built-tree.xml</summaryFile>
+                                </configuration>
+                            </execution>
                         </executions>
                     </plugin>
 
