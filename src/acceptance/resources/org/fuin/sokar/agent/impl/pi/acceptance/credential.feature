@@ -86,3 +86,28 @@ Feature: A task authenticates without ever holding the credential
     And the task's broker saw a request
     When a script runs "sokar project unfollow broker --force"
     Then it exits zero
+
+  @slow
+  Scenario: a person's fresh task reaches work without being asked anything
+    # "Reached work, and nothing came first" rather than "the dialogs we know about are absent": a
+    # release that adds a question fails this the day it arrives. The agent declares what being at
+    # work looks like; the kit types nothing and waits for it.
+    Given a vault of this scenario's own, unlocked with the passphrase "scenario-vault-passphrase"
+    And the vault holds the value of "SOKAR_E2E_OPENROUTER_API_KEY" as "openrouter" of kind "api-key"
+    And a project called "ready" of class "guarded" with a file in it
+    And a terminal on the machine
+    When I run "sokar task start ready --project ready --repository ready --agent pi --provider openrouter --clearance deny"
+    Then the "pi" agent in task "ready" of "ready" reaches work without being asked anything
+    When a script runs "sokar project unfollow ready --force"
+    Then it exits zero
+
+  @slow
+  Scenario: a task nobody is watching ends rather than waiting on a question
+    # A question in a run nobody watches is a run that never ends. The kit stops it at the bound
+    # and fails, instead of letting the suite hang with nothing to report.
+    Given a vault of this scenario's own, unlocked with the passphrase "scenario-vault-passphrase"
+    And the vault holds the value of "SOKAR_E2E_OPENROUTER_API_KEY" as "openrouter" of kind "api-key"
+    And a project called "unwatched" of class "guarded" with a file in it
+    When a task nobody is watching is started in "unwatched" for the "pi" agent and ends within 300 seconds
+    And a script runs "sokar project unfollow unwatched --force"
+    Then it exits zero

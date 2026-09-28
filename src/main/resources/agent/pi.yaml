@@ -32,6 +32,11 @@ headless:
 session:
   supports_resume: true
   resume_flag: "--session"
+  # What the agent shows once it is at work, attended, having asked nothing - the acceptance kit
+  # waits for it without typing. Measured at a terminal: on screen at the prompt, absent while
+  # the trust question is up. The bound covers a first image build.
+  ready_marker: "Pi can explain its own features"
+  ready_within_seconds: 300
 
 provider:
   # OpenRouter's half - upstream, bearer header, the /api/v1 the OpenAI dialect is served under -

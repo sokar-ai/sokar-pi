@@ -22,7 +22,7 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 - The build and the update job call Sokar's release tool instead of Python: merging the tree's bill, the upstream lookup, the pin move with its relock, and the bill comparison.
 - The acceptance run is the Cucumber scenarios alone; they refuse to run as root, bring a vault of their own, and check that the adapter ships what its bill names and that a live task's broker saw the request.
 - The pull request carries the third-party comparison itself, with each component's licence, rather than leaving it in the run log.
-- Issues carry their repository's letter: `PI07` rather than `007`, so a number says which set it belongs to.
+- Issues carry their repository's letter: `PInn` rather than `0nn`, so a number says which set it belongs to.
 - The acceptance suite makes its project by following a local repository and names it on every task start; its cleanup asks Sokar to remove the project instead of deleting Sokar's directories.
 - Every task the acceptance suite starts names its repository, which Sokar now requires.
 - The pin check is a unit test instead of a Python script: the definition, the pom, `package.json` and the lockfile must name one version, and the Node runtime must not be overridden.
@@ -41,6 +41,7 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ### Added
 
+- The acceptance run fails when anything comes before Pi's prompt, attended or unattended, not only the dialogs already known.
 - The package carries `fd` and `ripgrep`, pinned by digest and in the bill, so Pi no longer tries to download them from GitHub at every start and its `@`-file autocomplete works.
 - The build refuses a main package that is not null-marked, so NullAway cannot skip one in silence.
 - The compile checks the package's nullness contract with NullAway, so returning null where a type promises a value fails the build.

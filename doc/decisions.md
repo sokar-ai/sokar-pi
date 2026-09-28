@@ -14,6 +14,7 @@ Ordered by what each decision covers; when one was taken, `git log` answers.
 | The agent in a task | [What is proven about brokering this agent](#what-is-proven-about-brokering-this-agent) - which transport, which credential kind, against what |
 | The agent in a task | [Pi does not check for a newer version in a task](#pi-does-not-check-for-a-newer-version-in-a-task) - the check could only fail, and never installs anything |
 | The agent in a task | [Pi shows nothing before work in a task](#pi-shows-nothing-before-work-in-a-task) - no dialog with a credential, without one, or headless; the status extension loads without a token |
+| The agent in a task | [Reaching work is checked by what the screen shows, not by the dialogs known](#reaching-work-is-checked-by-what-the-screen-shows-not-by-the-dialogs-known) - a declared marker, waited for attended; Pi draws it only after a question |
 | Which project this is | [Three projects, two names](#three-projects-two-names) - Pi, and the different Pi that Oh My Pi forks |
 | The build | [The release tooling is Sokar's, configured from the pom](#the-release-tooling-is-sokars-configured-from-the-pom) - data beside the pin, the relock image kept equal to the builder's by a test |
 | The build | [`build-pi-tree.sh` stays a shell script](#build-pi-treesh-stays-a-shell-script) - it orchestrates podman and npm, and Java would be the same calls in more lines |
@@ -74,6 +75,17 @@ missing, which a task cannot reach. Interactive input waits for that attempt, an
 `@`-file autocomplete offers nothing. So both ship in the tree, pinned by digest and in the bill,
 linked onto `PATH`: measured, Pi then starts without the attempt and `@READ` offers `README.md`;
 with them hidden from `PATH`, the attempt and its warnings return and the autocomplete is empty.
+
+## Reaching work is checked by what the screen shows, not by the dialogs known
+
+**The acceptance run fails when anything comes before Pi's prompt**, known or not. The definition
+declares `Pi can explain its own features`, a line of the header Pi draws at its prompt; the kit's
+step waits for it attended, typing nothing, and a second scenario requires an unattended run to end
+within its bound. Both pass against `smith`. **Why the check can fail:** with a workspace carrying a
+skill and `--no-approve` left off, Pi's trust question is up, and the bytes it has written by then -
+read while the question was on screen - hold the question and not the header: Pi draws its prompt
+only after the question is answered. The kit's own failing step was not run for this, because its
+fixture project carries no skill.
 
 ## Three projects, two names
 

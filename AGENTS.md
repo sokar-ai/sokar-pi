@@ -126,7 +126,7 @@ one copy.
 
 - **Every open thing is an issue**, in `issues/`, named `PInn-Short-Title.md`, numbered in
   order and carrying a priority. Not a TODO in the code, not a note in a commit message.
-- **The letter says which set a number belongs to**, so a bare `PI07` is unambiguous in
+- **The letter says which set a number belongs to**, so a bare `PInn` is unambiguous in
   every repository at once and an ordinary number can never look like a citation. `B`, `A`, `F`
   and `P` are Sokar's own sets, `PJ` the project,
   `SL` the sluice, `MX` the Matrix transport, and `CC`, `PI` and `OM` the three agents. The

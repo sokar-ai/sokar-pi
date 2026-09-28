@@ -21,6 +21,14 @@ class PiAgentTest {
     private final Agent agent = new PiAgent();
 
     @Test
+    void declaresWhatItShowsOnceAtWork() {
+
+        // The kit's check waits for this text and types nothing; a dialog before the prompt hides it.
+        assertThat(agent.definition().ready()).isNotNull();
+        assertThat(agent.definition().ready().text()).isEqualTo("Pi can explain its own features");
+    }
+
+    @Test
     void isDiscoveredThroughTheServiceLoader() {
 
         // Found through META-INF/services, like claude and omp; the directory was here and empty.
