@@ -13,6 +13,7 @@ Ordered by what each decision covers; when one was taken, `git log` answers.
 | The agent in a task | [The endpoint is set by a file, not a variable](#the-endpoint-is-set-by-a-file-not-a-variable) - why an agent declares what shape of endpoint it can address |
 | The agent in a task | [What is proven about brokering this agent](#what-is-proven-about-brokering-this-agent) - which transport, which credential kind, against what |
 | The agent in a task | [Pi does not check for a newer version in a task](#pi-does-not-check-for-a-newer-version-in-a-task) - the check could only fail, and never installs anything |
+| The agent in a task | [Pi shows nothing before work in a task](#pi-shows-nothing-before-work-in-a-task) - no dialog with a credential, without one, or headless; the status extension loads without a token |
 | Which project this is | [Three projects, two names](#three-projects-two-names) - Pi, and the different Pi that Oh My Pi forks |
 | The build | [The release tooling is Sokar's, configured from the pom](#the-release-tooling-is-sokars-configured-from-the-pom) - data beside the pin, the relock image kept equal to the builder's by a test |
 | The build | [`build-pi-tree.sh` stays a shell script](#build-pi-treesh-stays-a-shell-script) - it orchestrates podman and npm, and Java would be the same calls in more lines |
@@ -52,6 +53,24 @@ that the task reaches neither host.
 
 **What would change it:** a Pi release that installs updates by itself, which the weekly update job
 would have to catch before it is published.
+
+## Pi shows nothing before work in a task
+
+**A fresh task reaches Pi's prompt with no dialog**, measured on 0.85.0 at a terminal, a fresh task
+per run:
+
+- **With a credential:** Pi starts at its prompt, both extensions loaded (`sokar-route.ts`,
+  `sokar-status.ts`). The one question Pi asks - whether to trust a workspace carrying `.pi` or
+  `.agents/skills` - is answered by `--no-approve`.
+- **Without one:** Sokar does not start the agent at all ("the agent would start without a credential
+  and fail on its first request"). Started by hand in a task with a shell attached, Pi still asks
+  nothing; it warns that no model is available, and **the status extension loads** - it needs no
+  token, so a task without a credential still reports what Pi is doing. Only the routing extension
+  is absent, as it should be with no endpoint to route to.
+- **Headless:** a prompt run answers and exits; nothing waits.
+
+**Pi tries to download `fd` and `ripgrep` at every start** and fails, because a task cannot resolve
+github.com. It warns and carries on without them; that is PI20 in the issue index, not a dialog.
 
 ## Three projects, two names
 
