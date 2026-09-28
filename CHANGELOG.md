@@ -40,6 +40,7 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ### Added
 
+- The compile checks the package's nullness contract with NullAway, so returning null where a type promises a value fails the build.
 - The build refuses an issue number that names no issue, so a citation in prose cannot outlive the issue it points at.
 - The build refuses a link to an issue file from anywhere but the index, so a pointer cannot outlive the issue it names.
 - The packages provide `sokar-agent`, so the setup script and the daemon list this agent as one a person can choose.
