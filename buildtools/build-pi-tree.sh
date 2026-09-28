@@ -24,6 +24,14 @@ NODE_SHA256="${NODE_SHA256:-eeaccb0378b79406f2208e8b37a62479c70595e20be6b659125e
 # tag is a name its owner may repoint. The multi-arch index of node:22.20.0-slim, read 2026-09-27.
 NODE_IMAGE_DIGEST="${NODE_IMAGE_DIGEST:-b21fe589dfbe5cc39365d0544b9be3f1f33f55f3c86c87a76ff65a02f8f5848e}"
 BUILDER="${PI_BUILDER_IMAGE:-docker.io/library/node:${NODE_VERSION}-slim@sha256:${NODE_IMAGE_DIGEST}}"
+# The two search tools Pi otherwise downloads from GitHub at every start - fd for @-file
+# autocomplete, rg for its grep tool - which a task cannot reach. The musl builds Pi itself would
+# fetch, pinned by digest: rg's is the .sha256 it publishes, fd's the digest GitHub reports for
+# the asset, each equal to the bytes downloaded.
+FD_VERSION="${FD_VERSION:-10.5.0}"
+FD_SHA256="${FD_SHA256:-761c72dc8e120d85b22292063be8a796e2eeb20eb3e4f38b8fa2343ccf3514a7}"
+RG_VERSION="${RG_VERSION:-15.2.0}"
+RG_SHA256="${RG_SHA256:-33e15bcf1624b25cdd2a55813a47a2f95dbe126268203e76aa6a585d1e7b149c}"
 
 # Each of these can be overridden from the environment, and every one of them ends up in a command that
 # runs inside a build container with the shipped tree mounted writable. Checked against a strict
@@ -36,6 +44,12 @@ refuse() { echo "build-pi-tree: $1" >&2; exit 2; }
     || refuse "NODE_SHA256 is not a 64-character lowercase digest"
 [[ "$NODE_IMAGE_DIGEST" =~ ^[0-9a-f]{64}$ ]] \
     || refuse "NODE_IMAGE_DIGEST is not a 64-character lowercase digest"
+for v in FD_VERSION RG_VERSION; do
+    [[ "${!v}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || refuse "$v='${!v}' is not a version"
+done
+for d in FD_SHA256 RG_SHA256; do
+    [[ "${!d}" =~ ^[0-9a-f]{64}$ ]] || refuse "$d is not a 64-character lowercase digest"
+done
 # Maven passes the JVM it runs on; anything else from the environment must still be one binary.
 JAVA_CMD="${JAVA_CMD:-$(command -v java || true)}"
 [[ "$JAVA_CMD" == /* && -x "$JAVA_CMD" ]] \
@@ -110,6 +124,35 @@ podman run --rm --userns=keep-id --env "NODE_VERSION=$NODE_VERSION" \
     rm -f /out/node/bin/npm /out/node/bin/npx /out/node/bin/corepack
 "
 
+# fd and rg, checked against the pinned digests, the binary and its licenses kept and nothing else.
+# Fetched with node's fetch like the runtime above; it follows GitHub's redirect to its storage.
+podman run --rm --userns=keep-id --env "FD_VERSION=$FD_VERSION" --env "FD_SHA256=$FD_SHA256" \
+        --env "RG_VERSION=$RG_VERSION" --env "RG_SHA256=$RG_SHA256" \
+        -v "$TARGET:/out:z" "$BUILDER" sh -c "
+    set -eu
+    node -e \"
+        const { writeFileSync } = require('fs');
+        const e = process.env;
+        const get = (url, file) => fetch(url)
+            .then(r => { if (!r.ok) { throw new Error(url + ': HTTP ' + r.status); } return r.arrayBuffer(); })
+            .then(b => writeFileSync(file, Buffer.from(b)));
+        Promise.all([
+            get('https://github.com/sharkdp/fd/releases/download/v' + e.FD_VERSION + '/fd-v' + e.FD_VERSION
+                + '-x86_64-unknown-linux-musl.tar.gz', '/tmp/fd.tar.gz'),
+            get('https://github.com/BurntSushi/ripgrep/releases/download/' + e.RG_VERSION + '/ripgrep-'
+                + e.RG_VERSION + '-x86_64-unknown-linux-musl.tar.gz', '/tmp/rg.tar.gz'),
+        ]).catch(err => { console.error(err.message); process.exit(1); });
+    \"
+    echo \"\$FD_SHA256  /tmp/fd.tar.gz\" | sha256sum -c -
+    echo \"\$RG_SHA256  /tmp/rg.tar.gz\" | sha256sum -c -
+    mkdir -p /out/tools/bin /out/tools/licenses/fd /out/tools/licenses/ripgrep /tmp/fd /tmp/rg
+    tar -xzf /tmp/fd.tar.gz -C /tmp/fd --strip-components=1
+    tar -xzf /tmp/rg.tar.gz -C /tmp/rg --strip-components=1
+    cp /tmp/fd/fd /tmp/rg/rg /out/tools/bin/
+    cp /tmp/fd/LICENSE-APACHE /tmp/fd/LICENSE-MIT /out/tools/licenses/fd/
+    cp /tmp/rg/LICENSE-MIT /tmp/rg/UNLICENSE /tmp/rg/COPYING /out/tools/licenses/ripgrep/
+"
+
 # Prebuilt binaries for platforms a Linux container will never run. Dead weight in a package
 # that is already large, and confusing to anyone auditing what is shipped.
 podman run --rm --userns=keep-id -v "$TARGET:/out:z" "$BUILDER" sh -c '
@@ -128,12 +171,21 @@ podman run --rm --userns=keep-id -v "$TARGET:/out:z" "$BUILDER" sh -c '
     "$TARGET/pi/sbom.cdx.json" --name node --version "$NODE_VERSION" \
     --url "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-x64.tar.gz" \
     --sha256 "$NODE_SHA256" --license MIT
+"$JAVA_CMD" -cp "$RELEASE_CLASSPATH" org.fuin.sokar.release.Main add-component \
+    "$TARGET/pi/sbom.cdx.json" --name fd --version "$FD_VERSION" \
+    --url "https://github.com/sharkdp/fd/releases/download/v$FD_VERSION/fd-v$FD_VERSION-x86_64-unknown-linux-musl.tar.gz" \
+    --sha256 "$FD_SHA256" --license "MIT OR Apache-2.0"
+"$JAVA_CMD" -cp "$RELEASE_CLASSPATH" org.fuin.sokar.release.Main add-component \
+    "$TARGET/pi/sbom.cdx.json" --name ripgrep --version "$RG_VERSION" \
+    --url "https://github.com/BurntSushi/ripgrep/releases/download/$RG_VERSION/ripgrep-$RG_VERSION-x86_64-unknown-linux-musl.tar.gz" \
+    --sha256 "$RG_SHA256" --license "Unlicense OR MIT"
 
 cp "$TARGET/pi/sbom.cdx.json" "$MODULE/target/pi-tree-sbom.cdx.json"
 
-# One tarball rather than two directories: one file for the packagers to carry, one file for an
+# One tarball rather than three directories: one file for the packagers to carry, one file for an
 # operator to check, and one unpack instead of copying tens of thousands of files per task.
-tar -czf "$MODULE/target/pi-tree.tar.gz" -C "$TARGET" pi node
+tar -czf "$MODULE/target/pi-tree.tar.gz" -C "$TARGET" pi node tools
 
 echo "build-pi-tree: pi $(du -sh "$TARGET/pi" | cut -f1), node $(du -sh "$TARGET/node" | cut -f1),"\
+     "tools $(du -sh "$TARGET/tools" | cut -f1),"\
      "packaged $(du -h "$MODULE/target/pi-tree.tar.gz" | cut -f1)"

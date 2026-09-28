@@ -18,7 +18,7 @@ What the second command leaves in `target/`:
 
 ```
 sokar-agent-pi                              the adapter, run by Sokar on the host
-pi-tree.tar.gz                              Pi and a Node runtime, ~73 MB
+pi-tree.tar.gz                              Pi, a Node runtime, fd and ripgrep, ~74 MB
 sokar-agent-pi_1.0.0~SNAPSHOT_amd64.deb
 sokar-agent-pi-1.0.0~SNAPSHOT-1.x86_64.rpm
 ```
@@ -29,7 +29,7 @@ here, and the toolchain is a stated version rather than whatever the machine has
 Without podman the script says so and skips, and the package is then incomplete.
 
 That tree is why this build takes minutes where a single-binary agent takes seconds,
-and why the package is about 75 MB. It is shipped rather than fetched so a task image
+and why the package is about 79 MB. It is shipped rather than fetched so a task image
 builds with no network access at all, and so the same package cannot install different
 bytes on different days: `npm ci` against a lockfile that pins every dependency by
 integrity hash, verified once here rather than on every image build.
@@ -61,7 +61,9 @@ cd src/main/npm && npm install --package-lock-only
 
 Nothing is fetched at image-build time: the tree is inside the package, so a task image
 builds with no network access at all. The Node runtime is pinned separately, by version
-and SHA-256, at the top of `buildtools/build-pi-tree.sh`.
+and SHA-256, at the top of `buildtools/build-pi-tree.sh`. So are `fd` and `ripgrep`, the musl builds Pi
+would otherwise download from GitHub at every start - `fd` for `@`-file autocomplete, `rg` for its
+grep tool - and they are linked onto `PATH` in the image, where Pi looks first.
 
 `sokar agents --supply-chain` reports what is pinned, so "which version ran" is
 answerable from the installed adapter rather than from a build log.

@@ -30,7 +30,7 @@ convention rather than by a stated rule.
   rebuilding an image rather than editing a version.
 - **The Node runtime and the Pi CLI move independently.** The runtime's version and digest are now
   checked, but nothing decides *when* to follow a Node release. That is a second pin with no
-  detector.
+  detector - and `fd` and `ripgrep`, pinned the same way in `build-pi-tree.sh`, are two more.
 
 ## What would close it
 

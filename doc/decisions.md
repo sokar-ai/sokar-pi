@@ -69,8 +69,11 @@ per run:
   is absent, as it should be with no endpoint to route to.
 - **Headless:** a prompt run answers and exits; nothing waits.
 
-**Pi tries to download `fd` and `ripgrep` at every start** and fails, because a task cannot resolve
-github.com. It warns and carries on without them; that is PI20 in the issue index, not a dialog.
+**Pi looks for `fd` and `ripgrep` at every start** and downloads them from GitHub when they are
+missing, which a task cannot reach. Interactive input waits for that attempt, and without `fd` the
+`@`-file autocomplete offers nothing. So both ship in the tree, pinned by digest and in the bill,
+linked onto `PATH`: measured, Pi then starts without the attempt and `@READ` offers `README.md`;
+with them hidden from `PATH`, the attempt and its warnings return and the autocomplete is empty.
 
 ## Three projects, two names
 

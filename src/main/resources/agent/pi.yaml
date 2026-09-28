@@ -60,8 +60,11 @@ install:
     - source: pi/pi-tree.tar.gz
       target: /opt
   as_root:
-    - "# Pi runs from the tree copied in above; this is the only thing that has to be on PATH."
+    - "# Pi runs from the tree copied in above. fd and rg come with it and go on PATH, where Pi looks"
+    - "# before downloading them from GitHub, which a task cannot reach."
     - "# No version check: it asks pi.dev, which a task cannot reach, and could only show a notice."
     - "RUN ln -sf /opt/node/bin/node /usr/local/bin/node \\"
     - "    && printf '#!/bin/sh\\nexport PI_SKIP_VERSION_CHECK=1\\nexec /opt/node/bin/node /opt/pi/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js \"$@\"\\n' > /usr/local/bin/pi \\"
-    - "    && chmod 0755 /usr/local/bin/pi"
+    - "    && chmod 0755 /usr/local/bin/pi \\"
+    - "    && ln -sf /opt/tools/bin/fd /usr/local/bin/fd \\"
+    - "    && ln -sf /opt/tools/bin/rg /usr/local/bin/rg"

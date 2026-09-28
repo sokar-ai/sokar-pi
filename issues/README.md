@@ -5,7 +5,6 @@ identity, not sequence.
 
 | # | Status | Blocked by | What it covers | Open questions |
 |---|---|---|---|---|
-| [PI20](PI20-Pi-Downloads-Its-Search-Tools-At-Every-Start.md) | open | — | Every start tries to download fd and ripgrep from github.com, which a task cannot reach. | 1 |
 | [PI13](PI13-The-Built-Runtime-Is-Never-Asked-In-CI.md) | open | — | The built Node runtime's version is never asked in CI, because the tree does not exist yet when the check runs. | 1 |
 | [PI01](PI01-Pin-GitHub-Actions-By-Sha.md) | handed on | — | Every third-party GitHub Action runs from a mutable tag, beside the tokens that publish packages and open pull requests. | 1 |
 | [PI03](PI03-Automated-Agent-Updates.md) | open | — | The update pipeline is built; what it still decides by convention rather than by a stated rule, including a second pin with no detector. | 5 |

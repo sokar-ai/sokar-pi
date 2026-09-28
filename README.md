@@ -16,8 +16,8 @@ or [Fedora and RHEL](https://github.com/sokar-ai/sokar/blob/main/doc/getting-sta
 sudo apt install sokar-agent-pi      # or: sudo dnf install sokar-agent-pi
 ```
 
-**This package is large - about 75 MB** - because it carries Pi and a Node runtime
-rather than downloading them. That is deliberate: a task image is then built with no
+**This package is large - about 79 MB** - because it carries Pi, a Node runtime and
+the two search tools Pi uses, `fd` and `ripgrep`, rather than downloading them. That is deliberate: a task image is then built with no
 network access at all, and the same package cannot install different bytes on
 different days.
 
@@ -52,7 +52,7 @@ something goes wrong:
 a Node runtime, with no single URL to pin, so verification happens once where the
 package is built — against a lockfile pinning every dependency by integrity hash
 — and the image build then downloads nothing at all. That makes the package about
-75 MB instead of 6, which is the trade: see [how it is built](build.md).
+79 MB instead of 6, which is the trade: see [how it is built](build.md).
 
 ## Storing the credential
 
