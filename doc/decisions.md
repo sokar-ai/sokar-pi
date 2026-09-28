@@ -119,6 +119,35 @@ space the tool trims; `upstream-version` answers `rollback` for a dist-tag older
 `compare-bills` stops on a component nested in the tree that the update did not name. The relock
 itself is not measured this way - it needs podman.
 
+## Actions run from a commit, and Dependabot moves them
+
+Every `uses:` names a full commit with its release beside it, `@<commit> # vX.Y.Z`. A tag is a name its
+owner may point anywhere, and these jobs hold the publishing token, the machine credentials and a
+token that merges pull requests. GitHub's own actions are held to the same rule: the argument does not
+depend on who publishes the action.
+
+**Dependabot keeps the pins current** - the operator's choice on 2026-09-28, for every repository. A
+pin nobody moves rots, and a stale action with a known flaw is not safer than the current tag. Each
+release arrives as a pull request with the new commit and its version, and nothing merges it
+automatically: the review is what the pin buys.
+
+**`WorkflowPinTest` fails the build on a step that names a tag, a branch or a bare hash**, and says how
+to pin it, so a new workflow cannot bring a tag back. A step of this repository and an image by digest
+pass.
+
+**Nothing else in these workflows is fetched by a name**: the only `curl` is `jf rt curl` reading this
+product's own Artifactory. The setup actions download their tools themselves, and there the two differ:
+
+- **The JFrog CLI is fixed by the action's commit.** `setup-jfrog-cli` 5.2.0 defaults to `jf` 2.124.0
+  and asks for the newest only when told to, so a Dependabot bump moves both together, under review. It
+  checks no digest, which is the same publisher's trust as the action.
+- **Accepted risk: GraalVM is not.** `java-version: '25'` with `graalvm-community` resolves the newest
+  25.x from GitHub's release list at run time, and `setup-graalvm` 1.6.6 checks a checksum only for
+  Oracle's enterprise builds. That JDK compiles the native binary this repository publishes. An exact
+  version alone would not close it - a release asset can be replaced - and Dependabot does not move a
+  `with:` value. **What would change it:** an exact version with a digest this workflow verifies, and a
+  named process that moves both. That is one decision for every repository's JDK, not this one's.
+
 ## What an update takes, and when
 
 The operator decided these on 2026-09-28. Sokar's release tool applies them; `UpdateRulesTest`

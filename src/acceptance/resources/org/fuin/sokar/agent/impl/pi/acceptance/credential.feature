@@ -12,14 +12,25 @@ Feature: A task authenticates without ever holding the credential
     And the environment variable "SOKAR_E2E_MODEL" is set
 
   Scenario: a person unlocks the vault and the passphrase is not echoed
-    # A vault made for this scenario alone, so the prompt is the first-run one on any machine
-    # and whatever vault the account holds is never touched.
+    # A vault made for this scenario alone, so whatever vault the account holds is never touched.
+    # Sokar refuses to unlock a vault that does not exist, so it is created first, asked twice,
+    # and locked again: what is measured is the unlock a person does every day.
     Given a terminal on the machine
     When I run "export SOKAR_VAULT=$(mktemp -d)/vault.bin"
-    And I run "sokar vault unlock"
+    And I run "sokar vault init"
+    Then the terminal shows "New vault passphrase:"
+    When I type "sokar-acceptance-passphrase"
+    Then the terminal shows "New vault passphrase again:"
+    When I type "sokar-acceptance-passphrase"
+    Then the terminal shows "created "
+    When I run "sokar vault unlock --forget"
+    # Not "locked": everything seen so far is searched, and the init's "unlocked" contains it.
+    Then the terminal shows "the next command asks for the passphrase again"
+    When I run "sokar vault unlock"
     Then the terminal shows "Vault passphrase:"
     When I type "sokar-acceptance-passphrase"
-    Then the terminal shows "ready$"
+    # Only the unlock says "kernel keyring"; the init above says "this account's keyring".
+    Then the terminal shows "kernel keyring"
     And the terminal does not show "sokar-acceptance-passphrase"
     When I run "sokar vault unlock --forget && rm -r ${SOKAR_VAULT%/vault.bin}"
 

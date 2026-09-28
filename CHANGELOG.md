@@ -17,6 +17,8 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ### Changed
 
+- The vault scenario creates its vault before unlocking it, since Sokar now refuses to unlock one that does not exist.
+- Every GitHub Action runs from a pinned commit with its release beside it, Dependabot proposes the moves, and the build refuses a step named by tag.
 - The update job takes a release once it is three days old, and follows Node, `fd` and `ripgrep` beside Pi, each in its own pull request.
 - The Node builder image's digest is written with its `sha256:`, as the release tool reads and writes it.
 - The Pi tree's pins - the Node runtime, its builder image, `fd` and `ripgrep` - are pom properties, and `build-pi-tree.sh` keeps no default of its own.

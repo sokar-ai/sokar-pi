@@ -5,7 +5,6 @@ identity, not sequence.
 
 | # | Status | Blocked by | What it covers | Open questions |
 |---|---|---|---|---|
-| [PI01](PI01-Pin-GitHub-Actions-By-Sha.md) | handed on | — | Every third-party GitHub Action runs from a mutable tag, beside the tokens that publish packages and open pull requests. | 1 |
 | [PI05](PI05-Declare-What-Waiting-Looks-Like.md) | blocked | Sokar B47 | Declaring what "waiting for a person" looks like in this agent's own output. | 1 |
 | [PI08](PI08-Declare-Where-The-Session-Id-Is.md) | blocked | Sokar B46 | Declaring where this agent's session id is, so a task that comes back continues its conversation. | 2 |
 | [PI04](PI04-Can-Pi-Reach-A-Forge-Subscription.md) | open | — | Whether this agent reaches a forge subscription at all, and whether brokering holds beyond the one dialect it was proven against. | 3 |
@@ -14,13 +13,6 @@ identity, not sequence.
 belongs to another repository and this row tracks what has to change here afterwards. `blocked` -
 waiting on something else, and **Blocked by** names it: an issue here by its number, a Sokar
 requirement as `Sokar B<n>`.
-
-## The one that is not ours to finish
-
-**001** is tracked centrally as Sokar requirement **B49**, because the same mutable tags carry the
-same risk in every repository the four agents maintain. Its open question is the one that decides
-whether pinning helps at all: what keeps the pins current, since a pin without an update process
-rots silently.
 
 ## Handed over from Sokar, 2026-09-12
 
