@@ -17,6 +17,7 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ### Changed
 
+- Node pinned to 22.23.3 (was 22.20.0).
 - The vault scenario creates its vault before unlocking it, since Sokar now refuses to unlock one that does not exist.
 - Every GitHub Action runs from a pinned commit with its release beside it, Dependabot proposes the moves, and the build refuses a step named by tag.
 - The update job takes a release once it is three days old, and follows Node, `fd` and `ripgrep` beside Pi, each in its own pull request.
