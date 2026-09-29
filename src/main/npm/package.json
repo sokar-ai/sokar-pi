@@ -3,6 +3,6 @@
   "private": true,
   "description": "Pins the Pi coding agent and its dependencies for the sokar-agent-pi package.",
   "dependencies": {
-    "@earendil-works/pi-coding-agent": "0.85.0"
+    "@earendil-works/pi-coding-agent": "0.87.1"
   }
 }
