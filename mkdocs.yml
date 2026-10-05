@@ -3,4 +3,5 @@
 site_name: Pi for Sokar
 docs_dir: doc
 nav:
+  - Pi: index.md
   - Decisions: decisions.md
