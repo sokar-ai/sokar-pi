@@ -1,0 +1,321 @@
+# Builds against the PUBLISHED agent contract.
+name: Build
+
+# A push that only touches documentation builds nothing.
+on:
+  push:
+    branches: ['**']
+    # A release: v<version>, built and published to the 'releases' channel. Paths are not filtered for a tag.
+    tags: ['v*']
+    paths-ignore: ['**/*.md', 'mkdocs.yml']
+  pull_request:
+    branches: ['**']
+    paths-ignore: ['**/*.md', 'mkdocs.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  build:
+    name: Build and unit tests
+    # Pinned, not 'ubuntu-latest'.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: The pinned GraalVM
+        uses: ./.github/actions/pinned-jdk
+
+      - name: Resolve the release tooling
+        run: |
+          ./mvnw -B -q -U -Pci-tools -s settings.xml dependency:build-classpath \
+              -Dmdep.outputFile=target/cp.txt
+
+      # What every workflow step runs is pinned, and Dependabot moves the pins: the shared rule, refused
+      # here when broken - a tag, a version-name JDK action, a pin without its exact release.
+      - name: Every workflow step is pinned
+        run: java -cp "$(cat target/cp.txt)" org.fuin.sokar.release.Main check-actions
+
+      # -s settings.xml declares the snapshot repository the agent contract is resolved from, and keeps.
+      - name: Build and unit tests
+        run: ./mvnw -B -s settings.xml verify
+
+      # The packages are what an operator installs, so a build that has not produced them has not proved.
+      # Not -DskipTests: that also skips NativeLinkageCheck, the one test that needs the binary.
+      - name: Native binary and packages
+        run: ./mvnw -B -s settings.xml -Pnative,dist verify
+             -Dagent.snapshot.run=${{ github.run_number }}
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: packages
+          path: |
+            target/*.deb
+            target/*.rpm
+            target/*.cdx.json
+          if-no-files-found: error
+
+      # Publishing only from main, as a snapshot, and from a tag v<version>, as a release once every leg passed.
+      - name: Not publishing
+        if: "!(github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')))"
+        run: |
+          echo "Not publishing. This run is '${{ github.event_name }}' on '${{ github.ref }}',"
+          echo "and only a push to main or a tag v<version> publishes. The packages were built and tested here"
+          echo "and are attached to this run as artifacts; nothing reached Artifactory, so"
+          echo "'apt' will still offer whatever was published last."
+
+      # A tag publishes a release, everything else a snapshot. A release is refused unless the tag is exactly
+      # 'v' plus the version it carries, and a version is never a release and a snapshot at once. Nor is a
+      # release built against a Sokar snapshot, which is replaced under the same version.
+      - name: Which channel
+        id: channel
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+        run: |
+          set -eu
+          VERSION="$(sed -n 's|^    <version>\(.*\)</version>$|\1|p' pom.xml | head -1)"
+          [ -n "$VERSION" ] || { echo "::error::no version in pom.xml"; exit 1; }
+          SOKAR="$(sed -n 's|^        <sokar.version>\(.*\)</sokar.version>$|\1|p' pom.xml | head -1)"
+          [ -n "$SOKAR" ] || { echo "::error::no sokar.version in pom.xml"; exit 1; }
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+              [ "$GITHUB_REF_NAME" = "v$VERSION" ] \
+                  || { echo "::error::the tag $GITHUB_REF_NAME is not v$VERSION, the version this commit carries"; exit 1; }
+              case "$VERSION" in
+                  *-SNAPSHOT) echo "::error::$VERSION is a snapshot; a release carries its own version"; exit 1 ;;
+              esac
+              case "$SOKAR" in
+                  *-SNAPSHOT) echo "::error::sokar.version $SOKAR is a snapshot; a release is built against a released Sokar"; exit 1 ;;
+              esac
+              echo "channel=releases" >> "$GITHUB_OUTPUT"
+          else
+              case "$VERSION" in
+                  *-SNAPSHOT) ;;
+                  *) echo "::error::$VERSION on a branch would publish a release as a snapshot"; exit 1 ;;
+              esac
+              echo "channel=snapshots" >> "$GITHUB_OUTPUT"
+          fi
+          echo "  $VERSION -> $(tail -1 "$GITHUB_OUTPUT")"
+
+      # The action publishes build-info by itself at the end of the workflow.
+      - uses: jfrog/setup-jfrog-cli@68c0efdc951dd2359bbbfa15c48bc67b3ae8e4d6 # v5.2.0
+        with:
+          disable-auto-build-publish: true
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          JF_URL: ${{ vars.JF_URL }}
+          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+
+      # The same two repositories Sokar itself publishes to.
+      - name: Publish the packages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          JF_URL: ${{ vars.JF_URL }}
+          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+          CHANNEL: ${{ steps.channel.outputs.channel }}
+        run: |
+          set -eux
+          # A published release is never replaced, as on Central.
+          if [ "$CHANNEL" = releases ] && curl -sfL "${JF_URL}/artifactory/sokar-dist-deb/dists/releases/main/binary-amd64/Packages" \
+                  | grep -qF "Filename: pool/main/s/sokar-agent-pi/$(basename target/*.deb)"; then
+              echo "::error::this release is published already"; exit 1
+          fi
+          # --flat, or the source directory travels and the package lands away from its siblings.
+          jf rt upload "target/*.deb" "sokar-dist-deb/pool/main/s/sokar-agent-pi/" \
+              --flat=true \
+              --target-props="deb.distribution=${CHANNEL};deb.component=main;deb.architecture=amd64"
+          jf rt upload "target/*.rpm" "sokar-dist-rpm/${CHANNEL}/" --flat=true
+
+          # The bill beside the package, readable without installing.
+          jf rt upload "target/sokar-agent-pi.cdx.json" "sokar-dist-deb/pool/main/s/sokar-agent-pi/" --flat=true
+          jf rt upload "target/sokar-agent-pi.cdx.json" "sokar-dist-rpm/${CHANNEL}/" --flat=true
+
+      # Uploaded is not installable.
+      - name: The package is indexed, not merely stored
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          JF_URL: ${{ vars.JF_URL }}
+          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+          CHANNEL: ${{ steps.channel.outputs.channel }}
+        run: |
+          set -eu
+          tries=0
+          # -L: Artifactory answers a file with a redirect to its cloud storage, and without it the
+          # body is empty - every package then reads as "not indexed" although it is.
+          while [ "$tries" -lt 20 ]; do
+              if jf rt curl -sL -XGET \
+                  "/sokar-dist-deb/dists/${CHANNEL}/main/binary-amd64/Packages" 2>/dev/null \
+                  | grep -q "Package: sokar-agent-pi"; then
+                  echo "  OK    the Debian index lists sokar-agent-pi"
+                  exit 0
+              fi
+              tries=$((tries + 1))
+              sleep 6
+          done
+          echo "::error::sokar-agent-pi never appeared in the index - uploaded but not indexed"
+          exit 1
+
+  # The last step, and the only one that installs what an operator installs.
+  acceptance:
+    name: Acceptance - ${{ matrix.os }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    needs: build
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')))
+
+    strategy:
+      fail-fast: false
+      # One at a time.
+      max-parallel: 1
+      matrix:
+        os: [ubuntu, fedora]
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # A release is published only after these legs, so on a tag they install what this run built.
+      - name: The packages this run built
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: packages
+          path: candidate
+
+      # For the Cucumber half, which runs on this runner against the rented machine and needs the JDK.
+      - name: The pinned GraalVM
+        uses: ./.github/actions/pinned-jdk
+
+      # Before anything is created, so the cleanup below always has something to run.
+      - name: Resolve the machine tooling
+        run: |
+          ./mvnw -B -q -U -Pci-tools -s settings.xml dependency:build-classpath \
+              -Dmdep.outputFile=target/cp.txt
+
+      # SOKAR_E2E_OPENROUTER_API_KEY turns the tier 2 half on, so an empty one fails the leg rather than thinning it.
+      - name: Acceptance on ${{ matrix.os }}
+        timeout-minutes: 30
+        env:
+          HETZNER_API: ${{ secrets.HETZNER_API }}
+          HETZNER_SSH: ${{ secrets.HETZNER_SSH }}
+          SOKAR_CI_LEG: acc-${{ matrix.os }}
+          SOKAR_E2E_OPENROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
+          # Here rather than a repository setting, so the model is visible and changes with a commit.
+          SOKAR_E2E_MODEL: z-ai/glm-5.3-flash
+        # '--cucumber' adds the suite in src/acceptance, run from this runner as a person at a terminal,.
+        run: |
+          [ -n "${SOKAR_E2E_OPENROUTER_API_KEY:-}" ] || { echo "::error::the secret OPEN_ROUTER_API_KEY is empty - the credential scenarios would be skipped and the leg would prove less"; exit 1; }
+          if [ "$GITHUB_REF_TYPE" = tag ]; then FROM="--package sokar-agent-pi --candidate candidate"; else FROM="--package sokar-agent-pi"; fi
+          java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main acceptance \
+              --os ${{ matrix.os }} $FROM \
+              --cucumber .
+
+      - name: Delete what this run created
+        if: always()
+        env:
+          HETZNER_API: ${{ secrets.HETZNER_API }}
+          SOKAR_CI_LEG: acc-${{ matrix.os }}
+        run: java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main sweep --mine
+
+  # A release is never replaced and is what people install, so it waits for every job of the run, the legs
+  # on rented machines included. A snapshot publishes from the build job, beside a leg still running.
+  release:
+    name: Publish the release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    needs: [build, acceptance]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # A tag publishes a release, everything else a snapshot. A release is refused unless the tag is exactly
+      # 'v' plus the version it carries, and a version is never a release and a snapshot at once. Nor is a
+      # release built against a Sokar snapshot, which is replaced under the same version.
+      - name: Which channel
+        id: channel
+        run: |
+          set -eu
+          VERSION="$(sed -n 's|^    <version>\(.*\)</version>$|\1|p' pom.xml | head -1)"
+          [ -n "$VERSION" ] || { echo "::error::no version in pom.xml"; exit 1; }
+          SOKAR="$(sed -n 's|^        <sokar.version>\(.*\)</sokar.version>$|\1|p' pom.xml | head -1)"
+          [ -n "$SOKAR" ] || { echo "::error::no sokar.version in pom.xml"; exit 1; }
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+              [ "$GITHUB_REF_NAME" = "v$VERSION" ] \
+                  || { echo "::error::the tag $GITHUB_REF_NAME is not v$VERSION, the version this commit carries"; exit 1; }
+              case "$VERSION" in
+                  *-SNAPSHOT) echo "::error::$VERSION is a snapshot; a release carries its own version"; exit 1 ;;
+              esac
+              case "$SOKAR" in
+                  *-SNAPSHOT) echo "::error::sokar.version $SOKAR is a snapshot; a release is built against a released Sokar"; exit 1 ;;
+              esac
+              echo "channel=releases" >> "$GITHUB_OUTPUT"
+          else
+              case "$VERSION" in
+                  *-SNAPSHOT) ;;
+                  *) echo "::error::$VERSION on a branch would publish a release as a snapshot"; exit 1 ;;
+              esac
+              echo "channel=snapshots" >> "$GITHUB_OUTPUT"
+          fi
+          echo "  $VERSION -> $(tail -1 "$GITHUB_OUTPUT")"
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: packages
+          path: target
+
+      # The action publishes build-info by itself at the end of the workflow.
+      - uses: jfrog/setup-jfrog-cli@68c0efdc951dd2359bbbfa15c48bc67b3ae8e4d6 # v5.2.0
+        with:
+          disable-auto-build-publish: true
+        env:
+          JF_URL: ${{ vars.JF_URL }}
+          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+
+      # The same two repositories Sokar itself publishes to.
+      - name: Publish the packages
+        env:
+          JF_URL: ${{ vars.JF_URL }}
+          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+          CHANNEL: ${{ steps.channel.outputs.channel }}
+        run: |
+          set -eux
+          # A published release is never replaced, as on Central.
+          if [ "$CHANNEL" = releases ] && curl -sfL "${JF_URL}/artifactory/sokar-dist-deb/dists/releases/main/binary-amd64/Packages" \
+                  | grep -qF "Filename: pool/main/s/sokar-agent-pi/$(basename target/*.deb)"; then
+              echo "::error::this release is published already"; exit 1
+          fi
+          # --flat, or the source directory travels and the package lands away from its siblings.
+          jf rt upload "target/*.deb" "sokar-dist-deb/pool/main/s/sokar-agent-pi/" \
+              --flat=true \
+              --target-props="deb.distribution=${CHANNEL};deb.component=main;deb.architecture=amd64"
+          jf rt upload "target/*.rpm" "sokar-dist-rpm/${CHANNEL}/" --flat=true
+
+          # The bill beside the package, readable without installing.
+          jf rt upload "target/sokar-agent-pi.cdx.json" "sokar-dist-deb/pool/main/s/sokar-agent-pi/" --flat=true
+          jf rt upload "target/sokar-agent-pi.cdx.json" "sokar-dist-rpm/${CHANNEL}/" --flat=true
+
+      # Uploaded is not installable.
+      - name: The package is indexed, not merely stored
+        env:
+          JF_URL: ${{ vars.JF_URL }}
+          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+          CHANNEL: ${{ steps.channel.outputs.channel }}
+        run: |
+          set -eu
+          tries=0
+          # -L: Artifactory answers a file with a redirect to its cloud storage, and without it the
+          # body is empty - every package then reads as "not indexed" although it is.
+          while [ "$tries" -lt 20 ]; do
+              if jf rt curl -sL -XGET \
+                  "/sokar-dist-deb/dists/${CHANNEL}/main/binary-amd64/Packages" 2>/dev/null \
+                  | grep -q "Package: sokar-agent-pi"; then
+                  echo "  OK    the Debian index lists sokar-agent-pi"
+                  exit 0
+              fi
+              tries=$((tries + 1))
+              sleep 6
+          done
+          echo "::error::sokar-agent-pi never appeared in the index - uploaded but not indexed"
+          exit 1

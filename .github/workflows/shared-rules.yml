@@ -1,0 +1,36 @@
+# The marked rule blocks in AGENTS.md are shared copies; a hash that no longer fits its text means one
+# was edited alone. A job of its own, so an AGENTS.md-only change checks it without leasing machines.
+name: Shared rules
+
+on:
+  push:
+    branches: ['**']
+    paths: ['AGENTS.md']
+  pull_request:
+    branches: ['**']
+    paths: ['AGENTS.md']
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  check-shared:
+    name: Every shared rules block is unchanged
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: The pinned GraalVM
+        uses: ./.github/actions/pinned-jdk
+
+      - name: Resolve the release tooling
+        run: |
+          ./mvnw -B -q -U -Pci-tools -s settings.xml dependency:build-classpath \
+              -Dmdep.outputFile=target/cp.txt
+
+      - name: Every shared rules block is unchanged
+        run: java -cp "$(cat target/cp.txt)" org.fuin.sokar.release.Main check-shared AGENTS.md

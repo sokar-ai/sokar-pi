@@ -1,0 +1,25 @@
+Package: [[name]]
+# Not [[version]]: that is the raw Maven version, and apt compares on this line. This is the
+# agent module's version with -SNAPSHOT rewritten to ~SNAPSHOT, which sorts below the release
+# rather than above it.
+Version: [[agent.package.version]]
+Section: utils
+Priority: optional
+Architecture: amd64
+Maintainer: fuin.org <info@fuin.org>
+Homepage: https://github.com/sokar-ai/sokar
+# The native binary links against both; jdeb does not read it to find out. NativeLinkageCheck
+# holds these floors to the binary.
+Depends: sokar, libc6 (>= [[package.glibc.floor]]), zlib1g (>= 1:[[package.zlib.floor]])
+# What the setup script and Tasks1.Installable() list: every package providing it is an agent a
+# person can choose. The name is Sokar's.
+Provides: sokar-agent
+Description: [[description]] [[agent.cli.version]]
+ Installs into /usr/libexec/sokar/agents, where the sokar binary looks for
+ agents. Nothing needs to be registered: sokar scans that directory and asks
+ whatever it finds to describe itself, so installing this package is enough.
+ .
+ The package version is this agent's own version, independent of Sokar's release
+ line. The agent CLI version it installs is on the Description line above, so
+ "dpkg -s sokar-agent-pi" answers which Pi this package carries, without
+ consulting the definition.

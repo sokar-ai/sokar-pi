@@ -1,0 +1,262 @@
+# Follows Pi and the tree's pins - Node, fd, ripgrep - so nobody has to. One run asks about all of them,
+# moves each one with a release old enough as a commit of its own, verifies them together once, and
+# opens one pull request. A person who wants one of them out drops its commit.
+name: Update
+
+on:
+  schedule:
+    # Weekly, Monday morning UTC.
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+    inputs:
+      what:
+        description: 'What to follow: all of them, or the CLI or one pin'
+        type: choice
+        options: [all, node, fd, rg, cli]
+        default: all
+      version:
+        description: 'Take this exact version instead of asking upstream - with one of them chosen above'
+        required: false
+      channel:
+        description: "Which npm dist-tag to follow for the CLI when no version is given"
+        required: false
+        default: latest
+
+# The permissions this workflow needs, and no more.
+permissions:
+  contents: write
+  pull-requests: write
+
+# Never two at once.
+concurrency:
+  group: update
+  cancel-in-progress: false
+
+jobs:
+
+  update:
+    name: Follow upstream
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+
+    steps:
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Before the lookup, which is Sokar's release tool; and before anything is rented, so the
+      # cleanup below always has something to run.
+      - name: The pinned GraalVM
+        uses: ./.github/actions/pinned-jdk
+
+      - name: Resolve the release and machine tooling
+        run: |
+          ./mvnw -B -q -U -Pci-tools -s settings.xml dependency:build-classpath \
+              -Dmdep.outputFile=target/cp.txt
+          git config user.name 'sokar-update'
+          git config user.email 'noreply@fuin.org'
+
+      # ------------------------------------------------------------------ detect and apply
+
+      # Through env, never interpolated into the script, so no value can become shell. The pom holds
+      # each pin's upstream and line, and the age a release must reach before it is taken; the script
+      # refuses a version typed by hand for all of them at once.
+      - name: What upstream publishes, and what moves
+        id: follow
+        env:
+          WHAT: ${{ inputs.what || 'all' }}
+          VERSION: ${{ inputs.version }}
+          CHANNEL: ${{ inputs.channel || 'latest' }}
+        run: buildtools/follow-upstream.sh
+
+      # ------------------------------------------------------------------ verify
+
+      # Gates write STOP rather than failing, so the run can still clean up after itself.
+      - name: Unit tests
+        if: steps.follow.outputs.moved == 'yes'
+        run: |
+          ./mvnw -B -s settings.xml verify || echo "STOP=the unit suite failed" >> "$GITHUB_ENV"
+
+      # Not -DskipTests: it would skip the checks that need the binary and the built tree, which are
+      # what a new version most needs asked.
+      - name: Native binary and packages
+        if: steps.follow.outputs.moved == 'yes' && !env.STOP
+        run: |
+          ./mvnw -B -s settings.xml -Pnative,dist verify \
+              -Dagent.snapshot.run=${{ github.run_number }} \
+              || echo "STOP=the packages did not build" >> "$GITHUB_ENV"
+
+      # What moved carries its version in its purl, so without --expect-moved this stops every time.
+      # Nothing else is excused, which is the point.
+      - name: What else changed in the shipped tree
+        if: steps.follow.outputs.moved == 'yes' && !env.STOP
+        env:
+          COMPONENTS: ${{ steps.follow.outputs.components }}
+        run: |
+          set --
+          for component in $COMPONENTS; do
+              set -- "$@" --expect-moved "$component"
+          done
+          java -cp "$(cat target/cp.txt)" org.fuin.sokar.release.Main compare-bills \
+              target/sokar-agent-pi.cdx.json \
+              https://fuinorg.jfrog.io/artifactory/sokar-dist-deb/pool/main/s/sokar-agent-pi/sokar-agent-pi.cdx.json \
+              "$@" \
+              > target/bill-change.txt 2>&1 \
+              || echo "STOP=third-party components or licenses changed" >> "$GITHUB_ENV"
+          # In a file as well, so the pull request can carry it rather than only the run log.
+          cat target/bill-change.txt
+
+      # A major version, a pin older than upstream says, or an upstream that could not be asked: the
+      # rest still verified above, but nothing machines would add changes who has to decide.
+      - name: What upstream said that a person decides
+        if: steps.follow.outputs.stop != ''
+        env:
+          UPSTREAM_STOP: ${{ steps.follow.outputs.stop }}
+        run: |
+          echo "::warning::$UPSTREAM_STOP"
+          if [ -z "${STOP:-}" ]; then
+              echo "STOP=$UPSTREAM_STOP" >> "$GITHUB_ENV"
+          fi
+
+      # Without it the credential scenarios skip and the legs below pass on less than they claim.
+      - name: The provider key is there
+        if: steps.follow.outputs.moved == 'yes' && !env.STOP
+        env:
+          KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
+        run: |
+          [ -n "$KEY" ] || echo "STOP=the secret OPEN_ROUTER_API_KEY is empty, so the credential scenarios would be skipped" >> "$GITHUB_ENV"
+
+      - name: Acceptance - ubuntu
+        timeout-minutes: 30
+        if: steps.follow.outputs.moved == 'yes' && !env.STOP
+        env:
+          HETZNER_API: ${{ secrets.HETZNER_API }}
+          HETZNER_SSH: ${{ secrets.HETZNER_SSH }}
+          SOKAR_CI_LEG: upd-ubuntu
+          SOKAR_E2E_OPENROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
+          SOKAR_E2E_MODEL: z-ai/glm-5.3-flash
+          # Only when the CLI moved; otherwise the package installs the CLI that is already pinned.
+          SOKAR_E2E_EXPECT_CLI: ${{ steps.follow.outputs.cli }}
+        run: |
+          java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main acceptance \
+              --os ubuntu --package sokar-agent-pi \
+              --cucumber . --candidate target \
+              || echo "STOP=acceptance failed on ubuntu" >> "$GITHUB_ENV"
+
+      - name: Acceptance - fedora
+        timeout-minutes: 30
+        if: steps.follow.outputs.moved == 'yes' && !env.STOP
+        env:
+          HETZNER_API: ${{ secrets.HETZNER_API }}
+          HETZNER_SSH: ${{ secrets.HETZNER_SSH }}
+          SOKAR_CI_LEG: upd-fedora
+          SOKAR_E2E_OPENROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
+          SOKAR_E2E_MODEL: z-ai/glm-5.3-flash
+          SOKAR_E2E_EXPECT_CLI: ${{ steps.follow.outputs.cli }}
+        run: |
+          java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main acceptance \
+              --os fedora --package sokar-agent-pi \
+              --cucumber . --candidate target \
+              || echo "STOP=acceptance failed on fedora" >> "$GITHUB_ENV"
+
+      - name: Delete what this run created
+        if: always() && steps.follow.outputs.moved == 'yes'
+        env:
+          HETZNER_API: ${{ secrets.HETZNER_API }}
+          SOKAR_CI_LEG: upd-ubuntu
+        run: java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main sweep --mine || true
+
+      - name: Delete what this run created - fedora leg
+        if: always() && steps.follow.outputs.moved == 'yes'
+        env:
+          HETZNER_API: ${{ secrets.HETZNER_API }}
+          SOKAR_CI_LEG: upd-fedora
+        run: java -cp "$(cat target/cp.txt)" org.fuin.sokar.machines.Main sweep --mine || true
+
+      # ------------------------------------------------------------------ ask, or publish
+
+      # One branch for every run: an update that is still open when the next week's run moves more is
+      # replaced by the newer one, rather than a second request conflicting with the first.
+      - name: Open the pull request
+        id: request
+        if: always() && steps.follow.outputs.moved == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: ${{ steps.follow.outputs.title }}
+        run: |
+          set -eu
+          BRANCH=update/pi
+          git checkout -B "$BRANCH"
+          git push --force origin "$BRANCH"
+
+          {
+            echo "Applied by Sokar's release tool, one commit per move. To leave one out, drop its"
+            echo "commit and let the build run again."
+            echo
+            cat target/update/summary.md
+            echo
+            if [ -n "${STOP:-}" ]; then
+                echo "**This is not ready to publish: $STOP.**"
+                echo "Automation is not allowed to decide this one - see the run log."
+                if [ -s target/bill-change.txt ]; then
+                    echo
+                    echo "<details><summary>What changed in the shipped tree</summary>"
+                    echo
+                    echo '```'
+                    cat target/bill-change.txt
+                    echo '```'
+                    echo
+                    echo "</details>"
+                fi
+            else
+                echo "**Green.** Unit suite, the pin check against the published manifest, both"
+                echo "packages, an unchanged third-party component set apart from what moved, and the"
+                echo "acceptance suites on Ubuntu and Fedora against these packages rather than the"
+                echo "published ones."
+            fi
+          } > /tmp/body.md
+          if gh pr view "$BRANCH" --json number >/dev/null 2>&1; then
+              gh pr edit "$BRANCH" --title "$TITLE" --body-file /tmp/body.md
+              gh pr comment "$BRANCH" --body "Replaced by run ${{ github.run_number }}: $TITLE."
+              echo "the open update request now holds what this run moved"
+          else
+              gh pr create --title "$TITLE" --body-file /tmp/body.md --head "$BRANCH" --base main
+          fi
+          echo "opened=yes" >> "$GITHUB_OUTPUT"
+
+      # Auto-merge needs its own token: the default one does not trigger a further workflow.
+      - name: Merge, or say why not
+        if: always() && steps.request.outputs.opened == 'yes'
+        env:
+          GH_TOKEN: ${{ secrets.SOKAR_UPDATE_TOKEN || github.token }}
+          AUTO: ${{ vars.SOKAR_UPDATE_AUTO_MERGE }}
+          HAVE_TOKEN: ${{ secrets.SOKAR_UPDATE_TOKEN != '' }}
+          TITLE: ${{ steps.follow.outputs.title }}
+        run: |
+          set -eu
+          if [ -n "${STOP:-}" ]; then
+              echo "Not merging: $STOP."
+              echo "The branch is open for whoever decides it."
+          elif [ "$AUTO" != "true" ]; then
+              echo "Not merging: the repository variable SOKAR_UPDATE_AUTO_MERGE is '${AUTO:-unset}'."
+              echo "Everything passed. Merging the pull request publishes: $TITLE."
+              echo "Set the variable to 'true' when these runs have been watched enough."
+          elif [ "$HAVE_TOKEN" != "true" ]; then
+              echo "::error::SOKAR_UPDATE_AUTO_MERGE is on but the secret SOKAR_UPDATE_TOKEN is not set."
+              echo "Merging with the workflow's own token triggers no build, so nothing would be"
+              echo "published and the run would look successful. Refusing to merge."
+              exit 1
+          else
+              # A merge commit, not a squash: each move stays a commit of its own on main.
+              gh pr merge --merge --delete-branch update/pi
+              echo "Merged. The push to main builds and publishes: $TITLE."
+          fi
+
+      # Red means there is something to look at, and only that - including an upstream stop when
+      # nothing moved and there is no pull request to carry it.
+      - name: Stop
+        if: always() && (env.STOP || steps.follow.outputs.stop != '')
+        env:
+          UPSTREAM_STOP: ${{ steps.follow.outputs.stop }}
+        run: |
+          echo "::error::${STOP:-$UPSTREAM_STOP}"
+          exit 1

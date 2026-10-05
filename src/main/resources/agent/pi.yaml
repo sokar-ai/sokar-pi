@@ -1,0 +1,112 @@
+# Pi, a provider-agnostic coding agent.
+#
+# The second agent, and deliberately the awkward one: it is not tied to a provider, it cannot be
+# pointed at a broker with an environment variable, and it is a tree of files rather than one
+# binary. Each of those exercises something the first agent never touched.
+
+name: pi
+label: Pi
+binary: pi
+
+# Pi asks no permission questions: its shipped docs open "Pi runs with all permissions by
+# default", and 'pi --help' has no approval flag - measured on 0.85.0. Its one question
+# inside a task is whether to trust a workspace carrying .pi or .agents/skills.
+#
+# --no-approve answers it by ignoring those files, and that is a choice, not a default: trusting
+# them would load the repository's own extensions after sokar-route.ts, where one could re-register
+# the provider Sokar routed. The cost is that a repository's own Pi extensions do not load.
+sandboxed:
+  arguments: ["--no-approve"]
+
+# How the agent is told how its task's mailbox works. Sokar writes the instructions to a
+# read-only file in a task that has a mailbox and puts these arguments behind the 'sandboxed' ones, '{file}'
+# standing for its path, on every start, attended or not, a resumed one included. A task without a
+# mailbox gets neither. 'pi --help' on 0.85.0: "--append-system-prompt <text>  Append text or file contents to the system prompt", so a
+# path given there brings in the file's contents.
+instructions:
+  arguments: ["--append-system-prompt", "{file}"]
+
+git_identity:
+  name: Pi
+  email: noreply@pi.dev
+
+headless:
+  # 'pi --print --mode json "<prompt>"'. The prompt is positional, so no flag names it - an empty
+  # prompt flag is how a definition says that.
+  prompt_flag: ""
+  model_flag: "--model"
+  output_format_flags: ["--print", "--mode", "json"]
+
+session:
+  supports_resume: true
+  resume_flag: "--session"
+  # Where it names the session it runs. Measured on 0.85.0: an unattended run's first record,
+  # {"type":"session"}, carries the id, and '--session <id>' continues it. An attended session is kept as
+  # ~/.pi/agent/sessions/--workspace--/<timestamp>_<id>.jsonl, whose name '--session' does not find - but
+  # its first record is the same {"type":"session"}, and Sokar reads the id from inside the newest file.
+  session_id:
+    record: { type: session }
+    key: id
+    directory: ".pi/agent/sessions/--workspace--"
+    suffix: ".jsonl"
+  # What the agent shows once it is at work, attended, having asked nothing - the acceptance kit
+  # waits for it without typing. Measured at a terminal: on screen at the prompt, absent while
+  # the trust question is up. The bound covers a first image build.
+  ready_marker: "Pi can explain its own features"
+  ready_within_seconds: 300
+  # When the agent is at rest at its prompt, for Sokar to type its one wake line into the session
+  # and only then; never where 'waiting' matches. Read from the last 20 lines of the screen, plain. Measured
+  # on the VM at a terminal: its footer ends its context line with "(auto)" at rest and at work, and while it works a line reads
+  # "── <spinner> Working ───". "(auto)" also tells Pi's screen from the shell left when it exits. Pi has
+  # no question box: a question it puts is plain text on a resting screen, so a wake there reads as an answer.
+  at_rest:
+    shows: ["(auto)"]
+    lacks: ["Working ─"]
+  # No 'waiting' declaration, on purpose. Measured on 0.85.0 at a terminal: asked to put
+  # a question and wait, it writes the question as plain text on a screen that is otherwise the idle
+  # screen, byte for byte, and its title never changes. Nothing on it tells waiting from done, so
+  # Sokar says "cannot say" - which is true - rather than "not waiting", which a rule matching
+  # nothing would claim. The status extension this package installs does see its dialogs, but
+  # Sokar does not read an agent's own files.
+
+provider:
+  # OpenRouter's half - upstream, bearer header, the /api/v1 the OpenAI dialect is served under -
+  # is declared once in providers/openrouter.yaml. Pointing this agent at a different provider is
+  # now a choice at run time rather than an edit and a rebuild.
+  default: openrouter
+
+  # 'native' because Pi is not tied to one wire format: it knows providers, and speaks whichever
+  # each one's own dialect is. An agent with a fixed format names it instead.
+  dialect: native
+
+  # A URL, not a socket: Pi registers a provider with a baseUrl and has nowhere to put a socket
+  # path. Sokar answers that by binding a relay inside this task's own network namespace.
+  endpoint: url
+
+# Pi's install ping and its update check go to pi.dev. Refused rather than merely absent, so a test can
+# tell a policy from an oversight.
+refused_domains:
+  - pi.dev
+
+install:
+  version: "${agent.cli.version}"
+  # Shipped in this package rather than fetched: Pi is 162 npm packages and a Node runtime, with
+  # no single URL to pin. Verification happens once where the package is built, against a lockfile
+  # that pins every dependency by integrity hash, and the image build then downloads nothing.
+  #
+  # Named beside the agent's binary rather than by absolute path, so an account that runs its own
+  # copy of the agent copies its own tree into the image, not the machine's. The package puts it
+  # there, in pi/ under the agents directory.
+  packaged:
+    - source: pi/pi-tree.tar.gz
+      target: /opt
+  as_root:
+    - "# Pi runs from the tree copied in above. fd and rg come with it and go on PATH, where Pi looks"
+    - "# before downloading them from GitHub, which a task cannot reach."
+    - "# No version check and no telemetry: both ask pi.dev, which a task cannot reach. PI_TELEMETRY=0"
+    - "# also drops the attribution headers Pi would add to provider requests."
+    - "RUN ln -sf /opt/node/bin/node /usr/local/bin/node \\"
+    - "    && printf '#!/bin/sh\\nexport PI_SKIP_VERSION_CHECK=1\\nexport PI_TELEMETRY=0\\nexec /opt/node/bin/node /opt/pi/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js \"$@\"\\n' > /usr/local/bin/pi \\"
+    - "    && chmod 0755 /usr/local/bin/pi \\"
+    - "    && ln -sf /opt/tools/bin/fd /usr/local/bin/fd \\"
+    - "    && ln -sf /opt/tools/bin/rg /usr/local/bin/rg"
