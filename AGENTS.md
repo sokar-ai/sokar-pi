@@ -275,6 +275,11 @@ what is one adapter's alone stays outside.
   message.
 - **`buildtools/sbom/` is the bill generator with its own lockfile**, installed with
   `npm ci --ignore-scripts` and removed before anything is packaged.
+- **Whoever changes `buildtools/build-pi-tree.sh` or `buildtools/follow-upstream.sh` runs its
+  regression matrix** (in `doc/decisions.md`) and records the result in the commit.
+- **When the Node pin check is next touched, verify the Node release signature** there or in the
+  build: the project publishes a signed `SHASUMS256.txt`. Why the pin is accepted until then is in
+  `doc/decisions.md`.
 
 ## What this repository is
 

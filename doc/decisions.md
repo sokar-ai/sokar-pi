@@ -312,9 +312,9 @@ version named takes it at once - that is the way round the rule, not a change to
 The build is Java and Maven, and a file that is not says why. This one runs `npm ci` and the bill
 generator inside a builder container pinned by digest through podman, validates the pins Maven passes
 in and its own overrides, and packs the tree. Every step is a process call; a Java version would make the same calls
-with more lines and hide them behind a process API. What it must not lose is its input guards.
+with more lines and hide them behind a process API. What matters in it is its input guards.
 
-**Its regression matrix.** Each of these must be refused with exit 2, executing nothing:
+**Its regression matrix.** Each of these is refused with exit 2, executing nothing:
 
     NODE_VERSION='22.20.0; touch /tmp/pwned'
     NODE_VERSION='22.20.0$(id)'
@@ -329,8 +329,6 @@ with more lines and hide them behind a process API. What it must not lose is its
     RG_VERSION='15; id'
     any pin unset (the script keeps no default)
 
-Whoever changes the script runs the matrix and records the result in the commit.
-
 **What would change the answer:** the tree build needing logic that is not a process call - parsing,
 merging, deciding - which belongs in Java rather than grown into this file.
 
@@ -344,7 +342,7 @@ Pi lockfile then resolved in the new Node image), one of them with a version by 
 stand-in tool, an upstream that could not be asked, one older than the pin, and a move that failed
 halfway - undone completely, the others still moved.
 
-**Its regression matrix.** Each of these must be refused with exit 2, executing nothing:
+**Its regression matrix.** Each of these is refused with exit 2, executing nothing:
 
     WHAT=bogus
     WHAT=all VERSION=1.2.3          (one version for all of them)
@@ -409,4 +407,4 @@ that was actually built what version it is, in every package build. An attacker 
 moment the pin was first recorded, and the pin would then still be stable and auditable.
 
 **What would change it:** verifying the Node release signature (the project publishes signed
-`SHASUMS256.txt`) in the build or the pin check, which is worth doing when this is next touched.
+`SHASUMS256.txt`) in the build or the pin check.
