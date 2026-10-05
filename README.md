@@ -5,6 +5,8 @@ Runs [Pi](https://github.com/earendil-works/pi), the coding agent published as
 in a hardened container, reaching only its provider, with your credential kept on the machine and
 its work waiting for your review.
 
+Its documentation: **<https://sokar-ai.github.io/pi/>**.
+
 ## Install
 
 Once Sokar's package repository is set up, as Sokar's
