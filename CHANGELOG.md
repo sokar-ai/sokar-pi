@@ -12,6 +12,7 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ### Changed
 
+- A push that changes only documents - Markdown, `mkdocs.yml`, `doc/` or `issues/` - no longer starts the build.
 - The release tooling is `sokar-release` 0.4.1, whose shared checks of issue citations and the documentation chapter replace this repository's own tests.
 
 ## [0.4.0]

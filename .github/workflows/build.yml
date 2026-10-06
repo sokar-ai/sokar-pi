@@ -7,10 +7,10 @@ on:
     branches: ['**']
     # A release: v<version>, built and published to the 'releases' channel. Paths are not filtered for a tag.
     tags: ['v*']
-    paths-ignore: ['**/*.md', 'mkdocs.yml']
+    paths-ignore: ['**/*.md', 'mkdocs.yml', 'doc/**', 'issues/**']
   pull_request:
     branches: ['**']
-    paths-ignore: ['**/*.md', 'mkdocs.yml']
+    paths-ignore: ['**/*.md', 'mkdocs.yml', 'doc/**', 'issues/**']
   workflow_dispatch:
 
 concurrency:
