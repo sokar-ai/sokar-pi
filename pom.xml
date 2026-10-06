@@ -294,6 +294,15 @@
 
     <profiles>
 
+        <!-- Runs only the tests that read the repository's documents, for a change to documents
+             or issues. DocumentTestsTaggedTest keeps every such test tagged. -->
+        <profile>
+            <id>documents</id>
+            <properties>
+                <groups>documents</groups>
+            </properties>
+        </profile>
+
         <!-- Requires GraalVM as JAVA_HOME. Produces target/sokar-agent-pi, which is
              installed into the agent directory and started by Sokar on demand. -->
 

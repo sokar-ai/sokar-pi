@@ -2,7 +2,7 @@
 
 ## Shared across the Sokar repositories
 
-> **BEGIN Shared Area** · sha256 `6f50f80a2fb6ec54` · changed 2026-10-05T09:30Z
+> **BEGIN Shared Area** · sha256 `9a3c3ef49781a5b6` · changed 2026-10-06T06:00Z
 
 Identical in every repository `project.yml` names. The markers carry the SHA-256 of the lines between
 them (the first 16 hex digits) and the UTC time that text last changed; change it in the channel
@@ -129,7 +129,9 @@ first, never in one copy.
 - **Before a commit, the full suite runs as its own step and its result is read.** A commit is gated
   on the exit code, never on grepped output, and never chained onto the test run.
 - **A change handed over says which test levels actually ran** - unit tests, local VM, rented
-  machine - never which ought to have. A change to documents or issues only needs the unit tests.
+  machine - never which ought to have. A change to documents or issues only needs the tests tagged
+  `documents`, which run alone; every test that reads a document carries that tag, and a test fails
+  when one does not.
 - **A test result names every skipped test**, never just a count.
 - **A failing check prints what it asked and what it got, never a guessed cause**, and its failure
   path has been made to happen once and read.
@@ -226,7 +228,7 @@ first, never in one copy.
 - **Every native executable is built with `-march=x86-64`**, so it starts on any x86-64 CPU, and the
   build checks each executable for exactly that instruction set.
 
-> **END Shared Area** · sha256 `6f50f80a2fb6ec54`
+> **END Shared Area** · sha256 `9a3c3ef49781a5b6`
 
 ## Shared by the agent adapter repositories
 
@@ -268,6 +270,8 @@ what is one adapter's alone stays outside.
 
 - **Issues here are `PInn-Short-Title.md`, with the prefix `PI`.** `IssueCitationTest` keys on the
   shape `[A-Z]{1,2}\d{2}` and fails on a number that names no open issue.
+- **The tests tagged `documents` run alone with `./mvnw -o -B -s settings.xml -Pdocuments test`**, and
+  `DocumentTestsTaggedTest` fails when a test reads a document without the tag.
 - **`buildtools/build-pi-tree.sh` cannot be Java**: it drives podman and npm to build Pi's Node tree
   in a pinned container; the full reason is in `doc/decisions.md`.
 - **`buildtools/build-pi-tree.sh` builds what the package carries** - Pi from a lockfile and a pinned

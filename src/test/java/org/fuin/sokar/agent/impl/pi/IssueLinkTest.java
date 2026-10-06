@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.Test;
  * An issue file is deleted when the issue is finished or closed unbuilt, so a link to one breaks
  * then. The index is the exception: linking files is what an index is.
  */
+@Tag("documents")
 class IssueLinkTest {
 
     /** The one file allowed to link issue files, relative to the repository root. */

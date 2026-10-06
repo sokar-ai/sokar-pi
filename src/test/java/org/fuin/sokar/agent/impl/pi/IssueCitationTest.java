@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
  * Sound because a retired number leaves the documents with its file, so a citation is always a
  * pointer. No link breaks when one goes stale, which is why a link guard cannot see this.
  */
+@Tag("documents")
 class IssueCitationTest {
 
     /** This repository's set. Another repository's letter is not ours to check. */

@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.Test;
  * cite an issue number, this repository's or another's: an issue is deleted once it is finished, and the
  * citation then points at nothing.
  */
+@Tag("documents")
 class NoIssueNumberInCodeTest {
 
     /** The shape every repository's numbers share, so no list of prefixes has to be kept in step. */
