@@ -21,32 +21,35 @@ class DocumentTestsTaggedTest {
     /** The tag the {@code documents} profile selects. */
     static final String TAG = "@Tag(\"documents\")";
 
-    /** A document is reached through the shared walk or named by a markdown path in a string literal. */
+    /** A document is named in a string literal: a markdown path, the chapter's navigation, or its directories. */
     private static final Pattern READS_A_DOCUMENT =
-            Pattern.compile("RepositoryDocuments\\.(all|liveIssues)\\(|\"[^\"\\n]*\\.md[#\"]");
+            Pattern.compile("\"[^\"\\n]*\\.md[#\"]|\"mkdocs\\.yml\"|\"(doc|issues)(/[^\"\\n]*)?\"");
 
     private static final Path TESTS = Path.of("src", "test", "java");
 
     @Test
     void everyTestThatReadsADocumentCarriesTheTag() throws IOException {
 
-        final List<Path> readers = readers();
-        final List<String> untagged = readers.stream()
-                .filter(file -> !tagged(read(file)))
+        final List<Path> tests = tests();
+        final List<String> untagged = tests.stream()
+                .filter(file -> readsADocument(read(file)) && !tagged(read(file)))
                 .map(file -> file.getFileName().toString())
                 .toList();
 
-        assertThat(readers).as("the scan must find the tests that read documents")
-                .anySatisfy(file -> assertThat(file.getFileName()).hasToString("IssueLinkTest.java"))
-                .anySatisfy(file -> assertThat(file.getFileName()).hasToString("NoIssueNumberInCodeTest.java"));
+        // The shared document checks of sokar-release replaced the tests that read documents, so the scan
+        // proves it reaches the test sources by the tests that are left.
+        assertThat(tests).as("the scan must reach the test sources")
+                .anySatisfy(file -> assertThat(file.getFileName()).hasToString("WorkflowRulesTest.java"));
         assertThat(untagged).as("tests that read a document without %s", TAG).isEmpty();
     }
 
     @Test
-    void seesTheSharedWalk() {
+    void seesTheDocumentDirectoriesAndTheNavigation() {
 
-        assertThat(readsADocument("for (Path p : RepositoryDocuments.all()) {")).isTrue();
-        assertThat(readsADocument("Set<String> live = RepositoryDocuments.liveIssues();")).isTrue();
+        assertThat(readsADocument("Files.list(root.resolve(\"issues\"))")).isTrue();
+        assertThat(readsADocument("Files.walk(root.resolve(\"doc/walks\"))")).isTrue();
+        assertThat(readsADocument("root.resolve(\"mkdocs.yml\")")).isTrue();
+        assertThat(readsADocument("\"documentation: \\\"https://example.org/doc\\\"\"")).isFalse();
     }
 
     @Test
@@ -71,10 +74,9 @@ class DocumentTestsTaggedTest {
         assertThat(tagged(TAG + "\nclass X {")).isTrue();
     }
 
-    private static List<Path> readers() throws IOException {
+    private static List<Path> tests() throws IOException {
         try (Stream<Path> tree = Files.walk(RepositoryDocuments.root().resolve(TESTS))) {
             return tree.filter(file -> file.toString().endsWith("Test.java"))
-                    .filter(file -> readsADocument(read(file)))
                     .sorted()
                     .toList();
         }

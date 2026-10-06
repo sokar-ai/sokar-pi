@@ -268,8 +268,8 @@ what is one adapter's alone stays outside.
 
 ## Work in this repository
 
-- **Issues here are `PInn-Short-Title.md`, with the prefix `PI`.** `IssueCitationTest` keys on the
-  shape `[A-Z]{1,2}\d{2}` and fails on a number that names no open issue.
+- **Issues here are `PInn-Short-Title.md`, with the prefix `PI`.** `sokar-release check-citations`,
+  run by the `shared-rules` workflow, refuses a citation that breaks once an issue is deleted.
 - **The tests tagged `documents` run alone with `./mvnw -o -B -s settings.xml -Pdocuments test`**, and
   `DocumentTestsTaggedTest` fails when a test reads a document without the tag.
 - **`buildtools/build-pi-tree.sh` cannot be Java**: it drives podman and npm to build Pi's Node tree

@@ -1,14 +1,14 @@
 # The marked rule blocks in AGENTS.md are shared copies; a hash that no longer fits its text means one
-# was edited alone. A job of its own, so an AGENTS.md-only change checks it without leasing machines.
+# was edited alone. Beside it the shared document checks: citations of issues in any page or source, and
+# the documentation chapter, and the tests tagged documents. A job of its own, so a document-only change
+# checks them without leasing machines; on every path, since a citation can land in any file.
 name: Shared rules
 
 on:
   push:
     branches: ['**']
-    paths: ['AGENTS.md']
   pull_request:
     branches: ['**']
-    paths: ['AGENTS.md']
   workflow_dispatch:
 
 concurrency:
@@ -34,3 +34,12 @@ jobs:
 
       - name: Every shared rules block is unchanged
         run: java -cp "$(cat target/cp.txt)" org.fuin.sokar.release.Main check-shared AGENTS.md
+
+      - name: No issue is cited by its file or by a number that is gone
+        run: java -cp "$(cat target/cp.txt)" org.fuin.sokar.release.Main check-citations .
+
+      - name: Every page of the documentation chapter is in its navigation once
+        run: java -cp "$(cat target/cp.txt)" org.fuin.sokar.release.Main check-doc-site doc mkdocs.yml
+
+      - name: The tests that read a document
+        run: ./mvnw -B -s settings.xml -Pdocuments test

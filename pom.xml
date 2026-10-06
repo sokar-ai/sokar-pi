@@ -107,6 +107,10 @@
              classpath, and no checkout of the sokar repository is needed to build here. -->
         <sokar.version>0.4.0</sokar.version>
 
+        <!-- sokar-release and sokar-machines, released apart from the contract; the BOM above pins
+             them to its own buildtools version, which an importing build cannot move. -->
+        <sokar.buildtools.version>0.4.1</sokar.buildtools.version>
+
         <fuin-bom.version>1.0.2</fuin-bom.version>
         <build-helper.version>3.6.1</build-helper.version>
         <exec-maven-plugin.version>3.5.0</exec-maven-plugin.version>
@@ -413,7 +417,7 @@
                             <dependency>
                                 <groupId>org.fuin.sokar</groupId>
                                 <artifactId>sokar-release</artifactId>
-                                <version>${sokar.version}</version>
+                                <version>${sokar.buildtools.version}</version>
                             </dependency>
                         </dependencies>
                     </plugin>
@@ -663,10 +667,12 @@
                 <dependency>
                     <groupId>org.fuin.sokar</groupId>
                     <artifactId>sokar-machines</artifactId>
+                    <version>${sokar.buildtools.version}</version>
                 </dependency>
                 <dependency>
                     <groupId>org.fuin.sokar</groupId>
                     <artifactId>sokar-release</artifactId>
+                    <version>${sokar.buildtools.version}</version>
                 </dependency>
             </dependencies>
         </profile>
