@@ -9,7 +9,7 @@
     <parent>
         <groupId>org.fuin.sokar</groupId>
         <artifactId>sokar-parent</artifactId>
-        <version>0.1.1</version>
+        <version>0.1.2</version>
         <relativePath/>
     </parent>
 
@@ -103,7 +103,7 @@
 
         <!-- The published contract this builds against. Nothing else of Sokar's is on the
              classpath, and no checkout of the sokar repository is needed to build here. -->
-        <sokar.version>0.4.0</sokar.version>
+        <sokar.version>0.4.1</sokar.version>
 
         <agent.install.dir>/usr/libexec/sokar/agents</agent.install.dir>
         <sbom.install.dir>/usr/share/sokar/sbom</sbom.install.dir>
