@@ -1,7 +1,8 @@
 # Follows Pi and the tree's pins - Node, fd, ripgrep - so nobody has to. One run asks about all of them,
 # moves each one with a release old enough as a commit of its own, verifies them together once, and
 # opens one pull request. A person who wants one of them out drops its commit.
-name: Update
+name: Agent version update
+run-name: "${{ github.workflow }} · ${{ github.ref_name }}: ${{ github.event.head_commit.message || github.event.pull_request.title || github.workflow }}"
 
 on:
   schedule:

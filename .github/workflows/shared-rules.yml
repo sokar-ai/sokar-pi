@@ -2,7 +2,8 @@
 # was edited alone. Beside it the shared document checks: citations of issues in any page or source, and
 # the documentation chapter, and the tests tagged documents. A job of its own, so a document-only change
 # checks them without leasing machines; on every path, since a citation can land in any file.
-name: Shared rules
+name: Shared rules check
+run-name: "${{ github.workflow }} · ${{ github.ref_name }}: ${{ github.event.head_commit.message || github.event.pull_request.title || github.workflow }}"
 
 on:
   push:

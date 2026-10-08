@@ -10,6 +10,10 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ## [Unreleased]
 
+### Changed
+
+- Every workflow run is titled by its workflow, the branch or tag and the commit; the shared rules run as `Shared rules check`, the weekly pin move as `Agent version update`.
+
 ## [0.4.1] - 2026-10-08
 
 ### Added
