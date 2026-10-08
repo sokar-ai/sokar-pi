@@ -9,6 +9,8 @@ Runs [Pi](https://github.com/earendil-works/pi), the coding agent published as
 `@earendil-works/pi-coding-agent` (not Oh My Pi), inside [Sokar](https://github.com/sokar-ai/sokar):
 in a hardened container, reaching only its provider, with your credential kept on the machine and
 its work waiting for your review.
+It is an adapter, not Sokar: it describes the agent and shapes in Java only what the agent cannot
+express as data, and it depends on Sokar's published agent API alone, never on Sokar's implementation.
 
 Its documentation: **<https://sokar-ai.github.io/pi/>**.
 

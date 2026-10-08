@@ -25,7 +25,7 @@ Ordered by what each decision covers; when one was taken, `git log` answers.
 | The build | [Actions run from a commit, and Dependabot moves them](#actions-run-from-a-commit-and-dependabot-moves-them) - every `uses:` by commit, GraalVM by Sokar's pin, checked by `check-actions` |
 | The build | [What an update takes, and when](#what-an-update-takes-and-when) - three days old and still the newest, one pull request per run, a real model call |
 | The build | [The bill generator is installed from its own lockfile, not resolved at build time](#the-bill-generator-is-installed-from-its-own-lockfile-not-resolved-at-build-time) - and neither it nor npm's cache is shipped |
-| The build | [NullAway is configured in this pom, not in the shared parent](#nullaway-is-configured-in-this-pom-not-in-the-shared-parent) - the parent is not this repository's to change |
+| The build | [NullAway comes from `sokar-parent`](#nullaway-comes-from-sokar-parent) - one compiler configuration for every repository; `.mvn/jvm.config` stays here |
 | The build | [No check requires a changelog entry](#no-check-requires-a-changelog-entry) - requiring one belongs to Sokar's changelog check, on logchange |
 | Accepted risk | [The Node runtime digest was first read from the service that serves it](#accepted-risk-the-node-runtime-digest-was-first-read-from-the-service-that-serves-it) - reviewed and pinned, and the built runtime is asked its version |
 
@@ -370,18 +370,15 @@ postinstall copies a binary its JS API finds without it. `PinAgreementTest` fail
 generator's version decides what the bill looks like, and that should change in a reviewed commit
 rather than on the day the registry serves something newer.
 
-## NullAway is configured in this pom, not in the shared parent
+## NullAway comes from `sokar-parent`
 
-`org.fuin:pom` would make it true in every repository at once, but it is not this repository's to
-change, and waiting for it would leave the `@NullMarked` promise unchecked. So the compiler
-configuration, the two versions and `.mvn/jvm.config` are here, identical in `sokar-claude-code` and
-`sokar-omp`. Three copies of one block is the shape `AGENTS.md` warns about; it is accepted because
-the parent is the one place that removes it, and **moving it there is the answer the day the parent
-takes it** - then all three copies go in the same change.
+The compiler configuration that runs NullAway - Error Prone with only NullAway, `OnlyNullMarked`, the
+two processor paths - is `sokar-parent`'s, managed for every Sokar repository, so this pom declares no
+compiler plugin. Only the `default-compile` execution runs it: tests pass `null` on purpose, and Error
+Prone never sees them.
 
-Only the `default-compile` execution runs it: tests pass `null` on purpose, and Error Prone never
-sees them. `.mvn/jvm.config` exists because Error Prone runs inside javac in Maven's own JVM, and a
-JDK from 16 on refuses it the compiler's internals - on JDK 25, an `IllegalAccessError` on
+What stays here is `.mvn/jvm.config`: Error Prone runs inside javac in Maven's own JVM, and from JDK 16
+on that JVM refuses it the compiler's internals - measured on JDK 25, an `IllegalAccessError` on
 `com.sun.tools.javac.api` before a single file is checked.
 
 ## No check requires a changelog entry

@@ -45,7 +45,8 @@ jobs:
         run: ./mvnw -B -s settings.xml verify
 
       # The packages are what an operator installs, so a build that has not produced them has not proved.
-      # Not -DskipTests: that also skips NativeLinkageCheck, the one test that needs the binary.
+      # Not -DskipTests: that also skips NativeLinkageCheck and PackageVersionCheck, the tests that
+      # need the binary and the packages it is packed into.
       - name: Native binary and packages
         run: ./mvnw -B -s settings.xml -Pnative,dist verify
              -Dagent.snapshot.run=${{ github.run_number }}
@@ -98,6 +99,15 @@ jobs:
               echo "channel=snapshots" >> "$GITHUB_OUTPUT"
           fi
           echo "  $VERSION -> $(tail -1 "$GITHUB_OUTPUT")"
+
+      # A release depends only on releases: every -SNAPSHOT in the effective pom - dependencies, the imported
+      # BOM, plugins and their dependencies such as sokar-release, inactive profiles too - refuses the tag.
+      - name: A release depends only on releases
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        run: |
+          ./mvnw -B -s settings.xml help:effective-pom -Doutput=target/effective-pom.xml
+          java -cp "$(cat target/cp.txt)" org.fuin.sokar.release.Main check-releases target/effective-pom.xml \
+              --requires org.fuin.sokar:sokar-release
 
       # The action publishes build-info by itself at the end of the workflow.
       - uses: jfrog/setup-jfrog-cli@68c0efdc951dd2359bbbfa15c48bc67b3ae8e4d6 # v5.2.0

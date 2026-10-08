@@ -7,9 +7,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.fuin</groupId>
-        <artifactId>pom</artifactId>
-        <version>2.0.2</version>
+        <groupId>org.fuin.sokar</groupId>
+        <artifactId>sokar-parent</artifactId>
+        <version>0.1.1</version>
         <relativePath/>
     </parent>
 
@@ -35,8 +35,6 @@
     </issueManagement>
 
     <properties>
-        <java.release.version>25</java.release.version>
-
         <!-- What distinguishes one snapshot package from the next.
              Without it every build of main produced the same 0.4.0~SNAPSHOT, so 'apt upgrade'
              saw nothing to do and whoever installed yesterday stayed on it until they purged.
@@ -107,21 +105,6 @@
              classpath, and no checkout of the sokar repository is needed to build here. -->
         <sokar.version>0.4.0</sokar.version>
 
-        <!-- sokar-release and sokar-machines, released apart from the contract; the BOM above pins
-             them to its own buildtools version, which an importing build cannot move. -->
-        <sokar.buildtools.version>0.4.1</sokar.buildtools.version>
-
-        <fuin-bom.version>1.0.2</fuin-bom.version>
-        <build-helper.version>3.6.1</build-helper.version>
-        <exec-maven-plugin.version>3.5.0</exec-maven-plugin.version>
-        <cyclonedx-maven-plugin.version>2.9.3</cyclonedx-maven-plugin.version>
-        <jdeb.version>1.14</jdeb.version>
-        <rpm.version>1.13.0</rpm.version>
-        <native-maven-plugin.version>1.1.11</native-maven-plugin.version>
-        <maven-failsafe-plugin.version>3.5.5</maven-failsafe-plugin.version>
-        <error-prone.version>2.50.0</error-prone.version>
-        <nullaway.version>0.14.2</nullaway.version>
-
         <agent.install.dir>/usr/libexec/sokar/agents</agent.install.dir>
         <sbom.install.dir>/usr/share/sokar/sbom</sbom.install.dir>
         <!-- Every RPM is unsigned, releases included, like Sokar's own: the repository
@@ -134,16 +117,24 @@
              acceptance run of the same day. -->
         <package.glibc.floor>2.34</package.glibc.floor>
         <package.zlib.floor>1.2.2</package.zlib.floor>
-
-        <!-- The agent is a binary, not a library. Nobody resolves this from Maven. -->
-        <maven.deploy.skip>true</maven.deploy.skip>
     </properties>
 
     <dependencyManagement>
 
         <dependencies>
 
-            <!-- First, so its versions win: the three Sokar artifacts, and JUnit as ONE set
+            <!-- JUnit's own BOM first, so no BOM imported after it can pull JUnit back - sokar-bom
+                 stops importing it with 0.4.1, and the org BOM pins an older Jupiter. -->
+
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>${junit.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Before the org BOM, so its versions win: the Sokar artifacts, and JUnit as ONE set
                  with the platform Cucumber is built against. Imported before the org BOM on
                  purpose - that one pins a Jupiter beside a suite engine from a different
                  platform, and through the acceptance kit the mixed set reaches this build and
@@ -211,49 +202,12 @@
 
         <plugins>
 
-            <!-- @NullMarked is a promise until something checks it: NullAway makes a broken
-                 nullness contract a compile error. Only the main compile - tests pass null on
-                 purpose. Error Prone runs only NullAway, so it adds nothing else to fix.
-                 Declaring processor paths turns off discovery from the classpath; nothing here
-                 relies on it, the service file is written by hand. Needs .mvn/jvm.config, which
-                 opens javac's internals to Error Prone. -->
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>default-compile</id>
-                        <configuration>
-                            <compilerArgs>
-                                <arg>-XDcompilePolicy=simple</arg>
-                                <arg>--should-stop=ifError=FLOW</arg>
-                                <arg>-Xplugin:ErrorProne -XepDisableAllChecks -Xep:NullAway:ERROR -XepOpt:NullAway:OnlyNullMarked=true</arg>
-                            </compilerArgs>
-                            <annotationProcessorPaths>
-                                <path>
-                                    <groupId>com.google.errorprone</groupId>
-                                    <artifactId>error_prone_core</artifactId>
-                                    <version>${error-prone.version}</version>
-                                </path>
-                                <path>
-                                    <groupId>com.uber.nullaway</groupId>
-                                    <artifactId>nullaway</artifactId>
-                                    <version>${nullaway.version}</version>
-                                </path>
-                            </annotationProcessorPaths>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
             <!-- The Maven half of this package's bill. The npm half is generated by
                  build-pi-tree.sh where npm ci runs, and merged below. -->
 
             <plugin>
                 <groupId>org.cyclonedx</groupId>
                 <artifactId>cyclonedx-maven-plugin</artifactId>
-                <version>${cyclonedx-maven-plugin.version}</version>
                 <executions>
                     <execution>
                         <id>cyclonedx</id>
@@ -317,7 +271,6 @@
                     <plugin>
                         <groupId>org.graalvm.buildtools</groupId>
                         <artifactId>native-maven-plugin</artifactId>
-                        <version>${native-maven-plugin.version}</version>
                         <extensions>true</extensions>
                         <executions>
                             <execution>
@@ -361,7 +314,6 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
-                        <version>${exec-maven-plugin.version}</version>
                         <executions>
                             <execution>
                                 <id>build-pi-tree</id>
@@ -425,7 +377,6 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>build-helper-maven-plugin</artifactId>
-                        <version>${build-helper.version}</version>
                         <executions>
                             <execution>
                                 <id>package-revision</id>
@@ -457,7 +408,6 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-failsafe-plugin</artifactId>
-                        <version>${maven-failsafe-plugin.version}</version>
                         <executions>
                             <execution>
                                 <id>native-linkage</id>
@@ -497,7 +447,6 @@
                     <plugin>
                         <groupId>org.vafer</groupId>
                         <artifactId>jdeb</artifactId>
-                        <version>${jdeb.version}</version>
                         <executions>
                             <execution>
                                 <id>deb</id>
@@ -566,7 +515,6 @@
                     <plugin>
                         <groupId>de.dentrassi.maven</groupId>
                         <artifactId>rpm</artifactId>
-                        <version>${rpm.version}</version>
                         <executions>
                             <execution>
                                 <id>rpm</id>
@@ -640,10 +588,39 @@
                         </configuration>
                     </plugin>
 
+
+                    <!-- After both packages, and declared after them because all three bind to verify:
+                         what the built .deb and .rpm say their version is. Surefire rather than failsafe,
+                         whose executions sit with native-linkage above, before the packages exist. -->
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>package-version</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <configuration>
+                                    <includes>
+                                        <include>**/PackageVersionCheck.java</include>
+                                    </includes>
+                                    <reportsDirectory>${project.build.directory}/surefire-reports-package-version</reportsDirectory>
+                                    <systemPropertyVariables>
+                                        <sokar.target>${project.build.directory}</sokar.target>
+                                        <project.version>${project.version}</project.version>
+                                        <agent.snapshot.run>${agent.snapshot.run}</agent.snapshot.run>
+                                    </systemPropertyVariables>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
                 </plugins>
             </build>
         </profile>
-
 
         <!-- The acceptance suite: what a person does at a terminal with this agent, run against a
              real machine through Sokar's published kit. Off unless a host is named - then the
@@ -656,26 +633,6 @@
              Its own source root rather than src/test: these are integration tests that rent a
              machine, and a unit test that cannot run without one would make 'mvn test' mean
              something different here than everywhere else. -->
-
-        <!-- The machine tooling, for the workflow step that deletes what a run created. Its
-             own profile so an ordinary build neither downloads it nor puts it on a classpath:
-             nothing in this module compiles against it, and CI asks for it by name. -->
-
-        <profile>
-            <id>ci-tools</id>
-            <dependencies>
-                <dependency>
-                    <groupId>org.fuin.sokar</groupId>
-                    <artifactId>sokar-machines</artifactId>
-                    <version>${sokar.buildtools.version}</version>
-                </dependency>
-                <dependency>
-                    <groupId>org.fuin.sokar</groupId>
-                    <artifactId>sokar-release</artifactId>
-                    <version>${sokar.buildtools.version}</version>
-                </dependency>
-            </dependencies>
-        </profile>
 
         <profile>
             <id>acceptance</id>
@@ -701,7 +658,6 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>build-helper-maven-plugin</artifactId>
-                        <version>${build-helper.version}</version>
                         <executions>
                             <execution>
                                 <id>acceptance-sources</id>
@@ -726,7 +682,6 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-failsafe-plugin</artifactId>
-                        <version>${maven-failsafe-plugin.version}</version>
                         <executions>
                             <execution>
                                 <goals>

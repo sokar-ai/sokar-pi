@@ -41,5 +41,8 @@ jobs:
       - name: Every page of the documentation chapter is in its navigation once
         run: java -cp "$(cat target/cp.txt)" org.fuin.sokar.release.Main check-doc-site doc mkdocs.yml
 
+      - name: Every module directory has a README that links its submodules
+        run: java -cp "$(cat target/cp.txt)" org.fuin.sokar.release.Main check-readmes .
+
       - name: The tests that read a document
         run: ./mvnw -B -s settings.xml -Pdocuments test

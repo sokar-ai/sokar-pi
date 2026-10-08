@@ -18,10 +18,10 @@ binary: pi
 sandboxed:
   arguments: ["--no-approve"]
 
-# How the agent is told how its task's mailbox works. Sokar writes the instructions to a
-# read-only file in a task that has a mailbox and puts these arguments behind the 'sandboxed' ones, '{file}'
-# standing for its path, on every start, attended or not, a resumed one included. A task without a
-# mailbox gets neither. 'pi --help' on 0.85.0: "--append-system-prompt <text>  Append text or file contents to the system prompt", so a
+# How the agent is told what Sokar puts in its task - the mailbox where there is one, /sokar/files and
+# what arrives there. Sokar writes this guide to a read-only file in every task Sokar makes and puts these
+# arguments behind the 'sandboxed' ones, '{file}' standing for its path, on every start, attended or not, a resumed
+# one included. 'pi --help' on 0.85.0: "--append-system-prompt <text>  Append text or file contents to the system prompt", so a
 # path given there brings in the file's contents.
 instructions:
   arguments: ["--append-system-prompt", "{file}"]
@@ -58,16 +58,20 @@ session:
   # and only then; never where 'waiting' matches. Read from the last 20 lines of the screen, plain. Measured
   # on the VM at a terminal: its footer ends its context line with "(auto)" at rest and at work, and while it works a line reads
   # "── <spinner> Working ───". "(auto)" also tells Pi's screen from the shell left when it exits. Pi has
-  # no question box: a question it puts is plain text on a resting screen, so a wake there reads as an answer.
+  # no question box: a question it puts is plain text on a resting screen, so a wake there would read as an answer.
   at_rest:
     shows: ["(auto)"]
     lacks: ["Working ─"]
-  # No 'waiting' declaration, on purpose. Measured on 0.85.0 at a terminal: asked to put
-  # a question and wait, it writes the question as plain text on a screen that is otherwise the idle
-  # screen, byte for byte, and its title never changes. Nothing on it tells waiting from done, so
-  # Sokar says "cannot say" - which is true - rather than "not waiting", which a rule matching
-  # nothing would claim. The status extension this package installs does see its dialogs, but
-  # Sokar does not read an agent's own files.
+  # No 'waiting' declaration, on purpose. Measured on 0.85.0 at a terminal: asked to put a question
+  # and wait, it writes the question as plain text above its prompt; with the question open and at
+  # rest after the answer, the last 20 lines differ only in the model's words and the footer's token
+  # counters, a resting screen often ends with a question too, and its title never changes. Nothing on
+  # it tells waiting from done, so Sokar says "cannot say" - which is true - rather than "not
+  # waiting", which a rule matching nothing would claim. And since a line typed into a question
+  # nobody can see is open becomes its answer, Sokar types no wake line into an agent without
+  # 'waiting': Pi is never woken - not for a message, a handed-in file or a build verdict - and
+  # finds them when it looks, as its guide tells it. The status extension this package installs does
+  # see its dialogs, but Sokar does not read an agent's own files.
 
 provider:
   # OpenRouter's half - upstream, bearer header, the /api/v1 the OpenAI dialect is served under -

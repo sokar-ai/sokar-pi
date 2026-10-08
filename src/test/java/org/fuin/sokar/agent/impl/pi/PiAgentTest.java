@@ -111,10 +111,10 @@ class PiAgentTest {
     }
 
     @Test
-    void isToldHowItsMailboxWorksThroughItsSystemPrompt() {
+    void isToldWhatSokarPutsInItsTaskThroughItsSystemPrompt() {
 
-        // Sokar puts these behind the sandboxed arguments in a task with a mailbox, {file} standing
-        // for the instructions' path; the CLI reads the file, so the text never rides on the command line.
+        // Sokar puts these behind the sandboxed arguments in every task Sokar makes, {file} standing for the
+        // path of its guide to the task; the CLI reads the file, so the text never rides on the command line.
         assertThat(agent.definition().instructionArguments()).containsExactly("--append-system-prompt", "{file}");
     }
 
