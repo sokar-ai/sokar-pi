@@ -12,8 +12,8 @@ import org.fuin.sokar.wire.Json;
  * stream its machine-readable modes serialize, so nothing outside the process can see them.
  * <p>
  * <strong>Why a file rather than a message.</strong> The agent must not gain a way to write to the
- * host: that would be a fourth path out of the container beside the vault socket, the ssh-agent
- * socket and the gate, and the first one pointing outwards. So this writes a file <em>inside</em>
+ * host: that would be a third path out of the container beside the vault socket and the gate, and
+ * the first one pointing outwards. So this writes a file <em>inside</em>
  * the container, and the host reads it when it wants to know. The direction of the boundary is
  * unchanged - nothing is pushed, something is offered.
  * <p>

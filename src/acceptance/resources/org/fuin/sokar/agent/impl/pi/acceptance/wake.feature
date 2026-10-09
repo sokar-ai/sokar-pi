@@ -25,16 +25,31 @@ Feature: Pi is never woken, because nothing on its screen tells an open question
     Then the "pi" agent in task "wake" of "wake" reaches work without being asked anything
     When I type "Reply with the single word PONG."
     And I press Enter
-    Then within 120 seconds the terminal shows "PONG"
-    # An answer is on the screen a moment before its turn ends; the pause makes this the case of an agent at rest.
-    When a script runs "sleep 10"
-    And a script runs "echo 'What is 1234 plus 4321? Reply with the digits only.' | sokar talk tell sokar-wake-wake"
+    # The model's answer, not the typed line, which has the word in it too.
+    Then within 120 seconds this script exits zero:
+      """
+      podman exec sokar-wake-wake tmux capture-pane -p -t sokar | grep -v 'single word PONG' | grep -qw PONG
+      """
+    # An answer is on the screen a moment before its turn ends. At rest is what pi.yaml's at_rest reads, so what
+    # comes below comes to Pi at rest, the case in which an agent that declares waiting would be woken.
+    Then within 60 seconds this script exits zero:
+      """
+      screen=$(podman exec sokar-wake-wake tmux capture-pane -p -t sokar)
+      printf '%s\n' "$screen" | grep -qF '(auto)' || exit 1
+      ! printf '%s\n' "$screen" | grep -qF 'Working ─'
+      """
+    When a script runs "echo 'What is 1234 plus 4321? Reply with the digits only.' | sokar talk tell sokar-wake-wake"
     Then it exits zero
     When a script runs "echo 'a specification' > /tmp/sokar-wake-spec.txt && sokar task give sokar-wake-wake /tmp/sokar-wake-spec.txt"
     Then it exits zero
-    # The daemon's passes would have typed either line well within this; an agent that declares waiting is woken
-    # within 120 seconds in its own suite.
-    When a script runs "sleep 60"
+    # Both reached the task, so a wake would be due from here on.
+    Then within 60 seconds this script exits zero:
+      """
+      podman exec sokar-wake-wake sh -c 'find /run/sokar/mail/inbox/new /run/sokar/mail/inbox/cur -type f | grep -q . && test -s /sokar/files/sokar-wake-spec.txt'
+      """
+    # The command that delivered each would have typed its line at once, and the daemon's message watcher passes
+    # every 5 seconds while idle: three of its passes go by before the screen is read.
+    When a script runs "sleep 15"
     Then the terminal does not show "A message for you waits"
     And the terminal does not show "A file arrived in /sokar/files"
     When a script runs "rm -f /tmp/sokar-wake-spec.txt; sokar task remove sokar-wake-wake --force"

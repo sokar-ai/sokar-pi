@@ -12,6 +12,7 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ### Changed
 
+- The wake scenario reads the model's answer rather than the typed line, waits for Pi at rest and for the message and file to arrive instead of fixed pauses, and watches 15 seconds rather than 60 for a wake line.
 - Built against the snapshots of Sokar (0.4.2-SNAPSHOT) and `sokar-parent` (0.1.4-SNAPSHOT, with the release tooling 0.4.5-SNAPSHOT); a release moves them to released versions first.
 - Every workflow run is titled by its workflow, the branch or tag and the commit; the shared rules run as `Shared rules check`, the weekly pin move as `Agent version update`.
 
