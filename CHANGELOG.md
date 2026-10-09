@@ -12,6 +12,7 @@ entry rather than a heading. One sentence per change - `git log` has the detail.
 
 ### Changed
 
+- Built against the snapshots of Sokar (0.4.2-SNAPSHOT) and `sokar-parent` (0.1.4-SNAPSHOT, with the release tooling 0.4.5-SNAPSHOT); a release moves them to released versions first.
 - Every workflow run is titled by its workflow, the branch or tag and the commit; the shared rules run as `Shared rules check`, the weekly pin move as `Agent version update`.
 
 ## [0.4.1] - 2026-10-08
