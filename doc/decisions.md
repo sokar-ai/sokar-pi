@@ -20,6 +20,7 @@ Ordered by what each decision covers; when one was taken, `git log` answers.
 | The agent in a task | [A task that comes back continues its conversation](#a-task-that-comes-back-continues-its-conversation) - the session id read from Pi's first record, unattended or attached |
 | Which project this is | [Three projects, two names](#three-projects-two-names) - Pi, and the different Pi that Oh My Pi forks |
 | The build | [The release tooling is Sokar's, configured from the pom](#the-release-tooling-is-sokars-configured-from-the-pom) - data beside the pin, the relock image kept equal to the builder's by a test |
+| The build | [A release is built from releases only](#a-release-is-built-from-releases-only) - on a tag nothing from Central's snapshots, and a tag on a Sokar snapshot refused by the step itself |
 | The build | [`build-pi-tree.sh` stays a shell script](#build-pi-treesh-stays-a-shell-script) - it orchestrates podman and npm, and Java would be the same calls in more lines |
 | The build | [`follow-upstream.sh` is a shell script for the same reason](#follow-upstreamsh-is-a-shell-script-for-the-same-reason) - process calls and `git`, with no decision of its own |
 | The build | [Actions run from a commit, and Dependabot moves them](#actions-run-from-a-commit-and-dependabot-moves-them) - every `uses:` by commit, GraalVM by Sokar's pin, checked by `check-actions` |
@@ -217,6 +218,26 @@ space the tool trims; `upstream-version` answers `rollback` for a dist-tag older
 `compare-bills` stops on a component nested in the tree that the update did not name. The relock
 itself is not measured this way - it needs podman.
 
+
+## A release is built from releases only
+
+Between releases everything is built on snapshots: `sokar.version`, the parent, and with the parent the release
+tooling. A tag's build takes none of them.
+
+- **Nothing from Central's snapshots on a tag.** The snapshot repository is a profile in `settings.xml` that
+  switches itself off when `sokar.release` is set, and `build.yml` sets `MAVEN_ARGS` to `-Dsokar.release` on a tag
+  and to `-U` elsewhere. Measured: with it, a build from an empty local repository cannot resolve the snapshot
+  parent; without it, it does. Not `-P!standard`: Maven then lists the profile as inactive and still takes the
+  parent from its repository, also measured.
+- **Nothing asked for again on a tag.** `-U` is in no command; `MAVEN_ARGS` carries it where it belongs, also into
+  the `pinned-jdk` action.
+- **A tag on a snapshot is refused.** "Which channel" refuses a `sokar.version` that names a snapshot, in the build
+  job and in the release job. `ReleaseChannelTest` runs both steps as a tag's run would, sees the refusal, and sees
+  a released Sokar let through; it was seen to fail with the refusal taken out. `check-releases` then refuses any
+  snapshot left in the effective pom.
+- **Secrets only where a tool needs them.** The tooling is resolved and the channel decided in steps that hold no
+  secret. The steps that hold one run only what needs it: the acceptance legs and their clean-up the cloud's key and
+  the provider's, publishing the repository's token.
 ## Actions run from a commit, and Dependabot moves them
 
 Every `uses:` names a full commit with its release beside it, `@<commit> # vX.Y.Z`. A tag is a name its

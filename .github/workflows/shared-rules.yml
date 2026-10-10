@@ -12,6 +12,11 @@ on:
     branches: ['**']
   workflow_dispatch:
 
+# Read by every Maven call, the pinned-jdk action's too: Maven asks for a newer snapshot once a day, and a
+# cache restored the day Sokar publishes would keep yesterday's. Never run on a tag.
+env:
+  MAVEN_ARGS: -U
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -30,7 +35,7 @@ jobs:
 
       - name: Resolve the release tooling
         run: |
-          ./mvnw -B -q -U -Pci-tools -s settings.xml dependency:build-classpath \
+          ./mvnw -B -q -Pci-tools -s settings.xml dependency:build-classpath \
               -Dmdep.outputFile=target/cp.txt
 
       - name: Every shared rules block is unchanged

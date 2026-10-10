@@ -26,7 +26,6 @@ runs:
             exit 1
         fi
         export JAVA_HOME="$JAVA_HOME_25_X64"
-        # -U: the cache above is keyed on pom.xml alone, and Maven asks for a newer snapshot once a day, so
-        # a cache restored the day Sokar publishes would otherwise keep yesterday's pin and check-actions.
-        ./mvnw -B -q -U -Pci-tools -s settings.xml dependency:build-classpath -Dmdep.outputFile=target/jdk-cp.txt
+        # MAVEN_ARGS, from the workflow, says -U or -Dsokar.release: the cache above is keyed on pom.xml alone.
+        ./mvnw -B -q -Pci-tools -s settings.xml dependency:build-classpath -Dmdep.outputFile=target/jdk-cp.txt
         "$JAVA_HOME/bin/java" -cp "$(cat target/jdk-cp.txt)" org.fuin.sokar.machines.Main jdk --github

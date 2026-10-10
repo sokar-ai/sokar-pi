@@ -26,6 +26,14 @@
 
             <id>standard</id>
 
+            <!-- Central's snapshots, for everything between releases. A tag's build sets sokar.release, and then
+                 nothing comes from them: a release is built from releases only. -->
+            <activation>
+                <property>
+                    <name>!sokar.release</name>
+                </property>
+            </activation>
+
             <repositories>
 
                 <repository>
@@ -64,8 +72,5 @@
 
     </profiles>
 
-    <activeProfiles>
-        <activeProfile>standard</activeProfile>
-    </activeProfiles>
 
 </settings>

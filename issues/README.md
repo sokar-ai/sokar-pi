@@ -7,9 +7,7 @@ number is identity, not sequence.
 
 ## Now
 
-| # | Status | Blocked by | What it covers | Open questions |
-|---|---|---|---|---|
-| [PI22](PI22-Build-Against-A-Released-Sokar.md) | open |  | no Sokar snapshot in a release build | 0 |
+None open.
 
 ## Soon
 

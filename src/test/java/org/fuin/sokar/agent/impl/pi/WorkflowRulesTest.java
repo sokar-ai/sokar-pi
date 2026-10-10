@@ -7,7 +7,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
@@ -48,15 +47,6 @@ class WorkflowRulesTest {
         assertThat(Files.readString(WORKFLOWS.resolve("update.yml")))
                 .contains("-n \"$KEY\"")
                 .contains("secrets.OPEN_ROUTER_API_KEY");
-    }
-
-    @Test
-    void aReleaseIsNeverBuiltAgainstASokarSnapshot() throws IOException {
-
-        // Once in the build job and once in the release job, which decide the channel each on its own.
-        final String build = Files.readString(WORKFLOWS.resolve("build.yml"));
-        final String refusal = "is a snapshot; a release is built against a released Sokar";
-        assertThat(build.split(Pattern.quote(refusal), -1)).hasSize(3);
     }
 
     @Test

@@ -24,6 +24,11 @@ on:
         default: latest
 
 # The permissions this workflow needs, and no more.
+# Read by every Maven call, the pinned-jdk action's too: Maven asks for a newer snapshot once a day, and a
+# cache restored the day Sokar publishes would keep yesterday's. Never run on a tag.
+env:
+  MAVEN_ARGS: -U
+
 permissions:
   contents: write
   pull-requests: write
@@ -51,7 +56,7 @@ jobs:
 
       - name: Resolve the release and machine tooling
         run: |
-          ./mvnw -B -q -U -Pci-tools -s settings.xml dependency:build-classpath \
+          ./mvnw -B -q -Pci-tools -s settings.xml dependency:build-classpath \
               -Dmdep.outputFile=target/cp.txt
           git config user.name 'sokar-update'
           git config user.email 'noreply@fuin.org'

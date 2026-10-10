@@ -14,6 +14,12 @@ on:
     paths-ignore: ['**/*.md', 'mkdocs.yml', 'doc/**', 'issues/**']
   workflow_dispatch:
 
+# Read by every Maven call, the pinned-jdk action's too. On a tag -Dsokar.release: nothing from Central's
+# snapshots and nothing asked for again, so a release is built from releases only. Elsewhere -U: Maven asks
+# for a newer snapshot once a day, and a cache restored the day Sokar publishes would keep yesterday's.
+env:
+  MAVEN_ARGS: ${{ startsWith(github.ref, 'refs/tags/v') && '-Dsokar.release' || '-U' }}
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -33,7 +39,7 @@ jobs:
 
       - name: Resolve the release tooling
         run: |
-          ./mvnw -B -q -U -Pci-tools -s settings.xml dependency:build-classpath \
+          ./mvnw -B -q -Pci-tools -s settings.xml dependency:build-classpath \
               -Dmdep.outputFile=target/cp.txt
 
       # What every workflow step runs is pinned, and Dependabot moves the pins: the shared rule, refused
@@ -201,7 +207,7 @@ jobs:
       # Before anything is created, so the cleanup below always has something to run.
       - name: Resolve the machine tooling
         run: |
-          ./mvnw -B -q -U -Pci-tools -s settings.xml dependency:build-classpath \
+          ./mvnw -B -q -Pci-tools -s settings.xml dependency:build-classpath \
               -Dmdep.outputFile=target/cp.txt
 
       # SOKAR_E2E_OPENROUTER_API_KEY turns the tier 2 half on, so an empty one fails the leg rather than thinning it.
