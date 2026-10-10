@@ -17,6 +17,10 @@ on:
 env:
   MAVEN_ARGS: -U
 
+# Read-only: nothing in this workflow writes to the repository with its token.
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true

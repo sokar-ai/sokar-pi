@@ -23,15 +23,14 @@ on:
         required: false
         default: latest
 
-# The permissions this workflow needs, and no more.
 # Read by every Maven call, the pinned-jdk action's too: Maven asks for a newer snapshot once a day, and a
 # cache restored the day Sokar publishes would keep yesterday's. Never run on a tag.
 env:
   MAVEN_ARGS: -U
 
+# Read-only for the workflow; the job below takes the two it needs to write, and no more.
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 # Never two at once.
 concurrency:
@@ -44,6 +43,10 @@ jobs:
     name: Follow upstream
     runs-on: ubuntu-24.04
     timeout-minutes: 90
+    # Pushes the pin's branch and opens its pull request: these two, for this job only.
+    permissions:
+      contents: write
+      pull-requests: write
 
     steps:
 
