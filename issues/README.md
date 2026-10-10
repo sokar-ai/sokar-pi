@@ -9,7 +9,7 @@ number is identity, not sequence.
 
 | # | Status | Blocked by | What it covers | Open questions |
 |---|---|---|---|---|
-| [PI22](PI22-Build-Against-A-Released-Sokar.md) | open | PJ18 | no Sokar snapshot in a release build | 0 |
+| [PI22](PI22-Build-Against-A-Released-Sokar.md) | open |  | no Sokar snapshot in a release build | 0 |
 
 ## Soon
 
