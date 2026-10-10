@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 
 /**
- * The update rules the operator decided, kept where Sokar's release tool and the update job read them.
+ * The update rules, kept where Sokar's release tool and the update job read them.
  * <p>
  * The tool applies the rules; what can break here is the configuration that asks for them. A pin
  * the pom carries but the tool is not told about, or that the job does not follow, is never moved -

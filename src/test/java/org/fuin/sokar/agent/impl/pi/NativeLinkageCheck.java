@@ -43,7 +43,7 @@ class NativeLinkageCheck {
     private static final Pattern REQUIRED = Pattern.compile("required by the image: \\[([A-Z0-9_, ]+)\\]");
 
     /**
-     * The x86-64 baseline, and the whole of what the binary may need: the operator decided that every
+     * The x86-64 baseline, and the whole of what the binary may need: every
      * native image runs on any x86-64 CPU. native-image's default is v3, and a pre-Haswell CPU or a VM
      * with a conservative CPU model would install the package and then not start it.
      */

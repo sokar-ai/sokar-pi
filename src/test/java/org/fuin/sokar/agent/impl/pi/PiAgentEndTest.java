@@ -15,7 +15,7 @@ class PiAgentEndTest {
     @Test
     void readsAProvidersRefusalWithItsStatus() {
 
-        // The shape of the operator's review run: OpenRouter's 403 at the very end.
+        // The shape seen in a review run: OpenRouter's 403 at the very end.
         assertThat(agent.ended("{\"type\":\"agent_end\",\"messages\":[{\"role\":\"user\"},"
                 + "{\"role\":\"assistant\",\"content\":[],\"stopReason\":\"error\",\"errorStatus\":403,"
                 + "\"errorMessage\":\"403 Key limit exceeded (total limit).\"}]}"))
